@@ -8,6 +8,7 @@ import { user } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+
 @Injectable()
 export class AuthService {
   constructor(private jwt: JwtService) {}
@@ -67,4 +68,23 @@ export class AuthService {
       );
     }
   }
+
+  async getUserFromToken(token: string) {
+    try {
+      const payload = await this.jwt.verifyAsync(token);
+      const [foundUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, payload.sub));
+
+      if (!foundUser) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return foundUser;
+    } catch (err) {
+      throw new UnauthorizedException('Invalid token');
+     }
+}
+
 }

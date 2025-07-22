@@ -9,8 +9,11 @@ console.log(process.env.DATABASE_URL)
 export default {
   schema: "./src/db/schema.ts",
   out: "./drizzle",
+  // driver: 'postgres-js',
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL!,
+    // connectionString: process.env.DATABASE_URL!,
+
   },
-} satisfies Config;
+} as Config;
