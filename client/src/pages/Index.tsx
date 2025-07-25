@@ -11,6 +11,8 @@ import RoleCards from "@/components/RoleCards";
 import FeaturedTalents from "@/components/FeaturedTalents";
 import FeaturedJobs from "@/components/FeaturedJobs";
 import Footer from "@/components/Footer";
+import { User } from "lucide-react";
+
 
 const Index = () => {
   return (
@@ -20,6 +22,15 @@ const Index = () => {
       <RoleCards />
       <FeaturedTalents />
       <FeaturedJobs />
+       {/* Profile Page Button */}
+      <div className="flex justify-center my-12">
+        <Link to="/profile">
+          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:scale-105 transition">
+            <User className="mr-2 h-5 w-5" />
+            🚀 Explore Profile Hub
+          </Button>
+        </Link>
+      </div>
       <Footer />
     </div>
   );

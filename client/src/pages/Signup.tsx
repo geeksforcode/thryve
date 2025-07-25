@@ -41,8 +41,8 @@ const Signup = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-gray-900">Sign Up</CardTitle>
-          <CardDescription className="text-gray-600">Create your account</CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-900 text-center">Sign Up</CardTitle>
+          <CardDescription className="text-gray-600 text-center">Create your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -149,7 +149,7 @@ const Signup = () => {
                 I agree to the <a href="#" className="text-blue-600 hover:underline">terms and conditions</a>
               </span>
             </div>
-            <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+            <Button type="submit" className="w-full bg-[#1E3A8A] hover:bg-[#60A5FA]">
               Sign Up
             </Button>
             <div className="text-center mt-4">
