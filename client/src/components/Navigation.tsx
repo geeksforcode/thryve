@@ -39,12 +39,12 @@ const Navigation = () => {
             >
               Contact
             </Link>
-            <Link
+            {/* <Link
               to="/chat"
               className="text-gray-700 hover:text-blue-600 transition-colors"
             >
               Chat
-            </Link>
+            </Link> */}
             <div className="flex items-center space-x-3">
               <Link to="/login">
                 <Button variant="outline" className="hover:bg-blue-50">
