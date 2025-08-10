@@ -6,6 +6,7 @@ import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -94,4 +95,23 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     return this.jwtService.sign(payload);
   }
+
+  async getUserFromToken(token: string) {
+    try {
+      const payload = await this.jwt.verifyAsync(token);
+      const [foundUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, payload.sub));
+
+      if (!foundUser) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return foundUser;
+    } catch (err) {
+      throw new UnauthorizedException('Invalid token');
+     }
+}
+
 }

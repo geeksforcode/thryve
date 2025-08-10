@@ -5,6 +5,8 @@ import {
   serial,
   integer,
   varchar,
+  jsonb,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
