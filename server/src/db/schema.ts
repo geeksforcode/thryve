@@ -17,41 +17,20 @@ export const user = pgTable('user', {
   username: text('username').notNull().unique(),
 });
 
-
-export const jobSeekers = pgTable('job_seekers', {
+export const artist = pgTable('artist', {
   id: serial('id').primaryKey(),
-  userId: uuid('user_id'),
-  fullName: varchar('full_name', { length: 255 }),
-  email: varchar('email', { length: 255 }).notNull(),
-  phone: varchar('phone', { length: 20 }),
-  resumeUrl: text('resume_url'),
+  name: text('name').notNull(),
   bio: text('bio'),
-  skills: jsonb('skills'), // Array of skill strings
-  education: jsonb('education'), // [{school, degree, startYear, endYear}]
-  experience: jsonb('experience'), // [{company, title, start, end, description}]
+  skills: text('skills').array(), // e.g., ['painting', 'plumbing']
+  rating: integer('rating'),
+  userId: integer('user_id').references(() => user.id),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const jobs = pgTable('jobs', {
+export const contactMessages = pgTable('contact_messages', {
   id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description').notNull(),
-  company: varchar('company', { length: 255 }),
-  location: varchar('location', { length: 255 }),
-  skillsRequired: jsonb('skills_required').notNull(), // array of skill strings
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  message: text('message').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
-
-export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
-  category: text("category").notNull(), // e.g., "React", "Behavioral"
-  question: text("question").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const interviewQuestions = pgTable('interview_questions', {
-  id: serial('id').primaryKey(),
-  question: text('question').notNull(),
-  category: text('category').notNull(),
-});
-

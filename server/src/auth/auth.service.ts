@@ -1,72 +1,98 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { db } from '../db/client';
-import { user } from '../db/schema';
-import { eq } from 'drizzle-orm';
-import * as bcrypt from 'bcrypt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { db } from '../db/client'; // adjust if different
+import { user as userTable } from '../db/schema'; // drizzle schema
 import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
+import { eq } from 'drizzle-orm';
+
 
 @Injectable()
 export class AuthService {
-  constructor(private jwt: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private usersService: UsersService,
+  ) {}
 
-  async register(
-    email: string,
-    password: string,
-    username: string,
-    role: string,
-  ) {
-    try {
-      const hash = await bcrypt.hash(password, 10);
+  async validateUser(email: string, password: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) throw new UnauthorizedException('User not found');
 
-      await db.insert(user).values({
-        email,
-        password: hash,
-        username,
-        role,
-      });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) throw new UnauthorizedException('Wrong credentials');
 
-      return { message: 'User created' };
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        throw new InternalServerErrorException(err.message);
-      }
-      throw new InternalServerErrorException(
-        'Something went wrong during registration',
-      );
-    }
+    return user;
   }
 
-  async login(email: string, password: string) {
-    try {
-      const [foundUser] = await db
-        .select()
-        .from(user)
-        .where(eq(user.email, email));
-      if (!foundUser) throw new UnauthorizedException('Invalid credentials');
+  async findByEmail(email: string) {
+    const result = await db
+      .select()
+      .from(userTable)
+      .where(userTable.email.eq(email));
+    return result[0];
+  }
 
-      const match = await bcrypt.compare(password, foundUser.password);
-      if (!match) throw new UnauthorizedException('Invalid credentials');
+  async create(data: {
+    email: string;
+    username: string;
+    password: string;
+    role: string;
+    provider?: string;
+  }) {
+    const result = await db.insert(userTable).values(data).returning();
+    return result[0];
+  }
 
-      const token = await this.jwt.signAsync({
-        sub: foundUser.id,
-        username: foundUser.username,
-        email: foundUser.email,
-        role: foundUser.role,
+  async login(user: any) {
+    const payload = { sub: user.id, email: user.email };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user,
+    };
+  }
+
+  async validateOAuthUser(profile: {
+    email: string;
+    username: string;
+    provider: string;
+  }) {
+    let user = await this.usersService.findByEmail(profile.email);
+
+    if (!user) {
+      user = await this.usersService.create({
+        email: profile.email,
+        password: '', // Empty since it's OAuth
+        role: 'user',
+        username: profile.username,
       });
-
-      return { access_token: token };
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        throw new InternalServerErrorException(err.message);
-      }
-      throw new InternalServerErrorException(
-        'Something went wrong during login',
-      );
     }
+
+    return user;
+  }
+
+  async validateOAuthLogin({
+    email,
+    username,
+    provider,
+  }: {
+    email: string;
+    username: string;
+    provider: string;
+  }) {
+    // Check if user exists
+    let user = await this.findByEmail(email);
+    if (!user) {
+      user = await this.create({
+        email,
+        username,
+        password: '', // empty because it's OAuth
+        role: 'user', // default role
+        provider,
+      });
+    }
+
+    const payload = { sub: user.id, email: user.email };
+    return this.jwtService.sign(payload);
   }
 
   async getUserFromToken(token: string) {

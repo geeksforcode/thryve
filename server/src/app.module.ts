@@ -3,17 +3,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProfileModule } from './profile/profile.module';
-import { JobSeekerModule } from './jobseeker/jobseeker.module';
-import { JobModule } from './job/job.module';
-import { InterviewPrepService } from './interview-prep/interview-prep.service';
-import { InterviewPrepModule } from './interview-prep/interview-prep.module';
-import { ConfigModule } from '@nestjs/config';
+import { ArtistModule } from './artist/artist.module';
+import { ContactService } from './contact/contact.service';
+import { ContactModule } from './contact/contact.module';
+import { UsersService } from './users/users.service';
 
 @Module({
-  imports: [AuthModule, ProfileModule, JobSeekerModule, JobModule, InterviewPrepModule, ConfigModule.forRoot({
-    isGlobal: true,
-  })],
+  imports: [AuthModule, ProfileModule, ArtistModule, ContactModule],
   controllers: [AppController],
-  providers: [AppService, InterviewPrepService],
+  providers: [AppService, ContactService, UsersService],
 })
 export class AppModule {}
