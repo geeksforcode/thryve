@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -13,7 +14,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: 'secretKey123', // 🔐 move to env
+      ignoreExpiration: false,
+      secretOrKey: secret, // ✅ Already type-safe here
     });
   }
 
@@ -21,3 +23,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return { userId: payload.sub, email: payload.email };
   }
 }
+
+// import { Injectable } from '@nestjs/common';
+// import { PassportStrategy } from '@nestjs/passport';
+// import { ExtractJwt, Strategy } from 'passport-jwt';
+
+// @Injectable()
+// export class JwtStrategy extends PassportStrategy(Strategy) {
+//   constructor() {
+//     const secret = process.env.JWT_SECRET;
+//     if (!secret) {
+//       throw new Error('JWT_SECRET is not defined in the .env variable');
+//     }
+
+//     super({
+//       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+//       ignoreExpiration: false,
+//       secretOrKey: secret as string,
+//     });
+//   }
+
+//   async validate(payload: any) {
+//     return { userId: payload.sub, email: payload.email };
+//   }
+// }

@@ -28,7 +28,8 @@ export class AuthService {
     const result = await db
       .select()
       .from(userTable)
-      .where(userTable.email.eq(email));
+      // .where(userTable.email.eq(email));
+      .where(eq(userTable.email, email));
     return result[0];
   }
 
