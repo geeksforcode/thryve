@@ -74,4 +74,34 @@ export class AuthService {
       );
     }
   }
+
+  async validateOAuthUser({
+    email,
+    username,
+    provider,
+  }: {
+    email: string;
+    username: string;
+    provider: string;
+  }): Promise<any> {
+    // Implement your logic: Check if the user exists, create one, etc.
+    // Example:
+    const user = { email, username, provider };
+    return user;
+  }
+  // This method is used in FacebookStrategy
+  async validateOAuthLogin({
+    email,
+    username,
+    provider,
+  }: {
+    email: string;
+    username: string;
+    provider: string;
+  }): Promise<any> {
+    // Implement your logic: Check if the user exists, create one, etc.
+    // Example:
+    const user = { email, username, provider };
+    return user;
+  }
 }
