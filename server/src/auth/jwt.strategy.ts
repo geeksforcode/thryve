@@ -1,49 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
-    const jwtSecret = configService.get<string>('JWT_SECRET');
-
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is not defined in environment variables');
-    }
-
+  constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: secret, // ✅ Already type-safe here
+      secretOrKey: process.env.JWT_SECRET as string,
     });
   }
-
   async validate(payload: any) {
-    return { userId: payload.sub, email: payload.email };
+    return {
+      id: payload.sub,
+      username: payload.username,
+      email: payload.email,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      role: payload.role,
+    };
   }
 }
-
-// import { Injectable } from '@nestjs/common';
-// import { PassportStrategy } from '@nestjs/passport';
-// import { ExtractJwt, Strategy } from 'passport-jwt';
-
-// @Injectable()
-// export class JwtStrategy extends PassportStrategy(Strategy) {
-//   constructor() {
-//     const secret = process.env.JWT_SECRET;
-//     if (!secret) {
-//       throw new Error('JWT_SECRET is not defined in the .env variable');
-//     }
-
-//     super({
-//       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-//       ignoreExpiration: false,
-//       secretOrKey: secret as string,
-//     });
-//   }
-
-//   async validate(payload: any) {
-//     return { userId: payload.sub, email: payload.email };
-//   }
-// }

@@ -1,25 +1,42 @@
 import {
   Controller,
   Post,
-  Req,
   Body,
-  UseGuards,
+  Req,
   Get,
   Res,
+  UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
+import { AuthService } from './auth.service';
+import { registerSchema } from './dto/auth.dto';
+import { loginSchema } from './dto/auth.dto';
+import { Response, Request } from 'express';
+interface AuthenticatedRequest extends Request {
+  user: any;
+}
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private auth: AuthService) {}
+
+  @Post('register')
+  register(@Body() body: any) {
+    const parsed = registerSchema.parse(body);
+    return this.auth.register(
+      parsed.email,
+      parsed.password,
+      parsed.username,
+      parsed.role,
+      parsed.lastName,
+      parsed.firstName,
+    );
+  }
 
   @Post('login')
-  async login(@Body() body: LoginDto) {
-    const user = await this.authService.validateUser(body.email, body.password);
-    return this.authService.login(user);
+  login(@Body() body: any) {
+    const parsed = loginSchema.parse(body);
+    return this.auth.login(parsed.email, parsed.password);
   }
 
   @Get('google')
@@ -31,7 +48,7 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleRedirect(@Req() req, @Res() res: Response) {
-    const token = await this.authService.login(req.user);
+    const token = await this.auth.loginOAuth(req.user);
     res.redirect(
       `http://localhost:3000/auth-success?token=${token.access_token}`,
     );
@@ -46,7 +63,7 @@ export class AuthController {
   @Get('facebook/callback')
   @UseGuards(AuthGuard('facebook'))
   async facebookRedirect(@Req() req, @Res() res: Response) {
-    const token = await this.authService.login(req.user);
+    const token = await this.auth.loginOAuth(req.user);
     res.redirect(
       `http://localhost:3000/auth-success?token=${token.access_token}`,
     );

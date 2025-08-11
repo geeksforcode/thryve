@@ -2,6 +2,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from 'passport-facebook';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '../auth.service';
+import { VerifyCallback } from 'passport-google-oauth20';
 
 @Injectable()
 export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
@@ -18,7 +19,7 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
     accessToken: string,
     refreshToken: string,
     profile: Profile,
-    done: Function,
+    done: VerifyCallback,
   ) {
     const email =
       profile.emails?.[0].value || `no-email-${Date.now()}@facebook.com`;
