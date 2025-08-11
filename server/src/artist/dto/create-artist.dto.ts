@@ -1,7 +1,7 @@
 export class CreateArtistDto {
-  name: string;
+  name!: string;
   bio?: string;
-  skills: string[];
+  skills!: string[];
   rating?: number;
-  userId: number;
+  userId!: number;
 }

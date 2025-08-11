@@ -7,6 +7,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { EducationEntry as Education } from './EducationEntry';
+import { ExperienceEntry as Experience } from './ExperienceEntry';
 
 class EducationEntry {
   @IsString() school!: string;
@@ -22,44 +24,35 @@ class ExperienceEntry {
   @IsString() end!: string;
   @IsOptional() @IsString() description?: string;
 }
-
 export class CreateJobSeekerDto {
   @IsString()
-  fullName!: string;
-
+  name!: string;
   @IsEmail()
   email!: string;
-
   @IsOptional()
   @IsString()
   phone!: string;
-
   @IsOptional()
   @IsString()
   resumeUrl!: string;
-
   @IsOptional()
   @IsString()
   bio!: string;
-
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   skills!: string[];
-
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EducationEntry)
-  education!: EducationEntry[];
-
+  education!: Education[];
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ExperienceEntry)
-  experience!: ExperienceEntry[];
-
+  experience!: Experience[];
   @IsOptional()
   @IsString()
-  userId!: string; // Will come from the Supabase token
+  userId!: string; // Comes from the Supabase token
 }

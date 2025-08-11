@@ -63,11 +63,17 @@ export class UpdateJobSeekerDto {
 
 export class UpdateResumeDto {
   @IsOptional() @IsString() bio?: string;
-  @IsOptional() @IsArray() @ValidateNested({ each: true })
-  @Type(() => EducationEntry) education?: EducationEntry[];
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EducationEntry)
+  education?: EducationEntry[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true })
-  @Type(() => ExperienceEntry) experience?: ExperienceEntry[];
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExperienceEntry)
+  experience?: ExperienceEntry[];
 
   @IsOptional() @IsArray() skills?: string[];
   @IsOptional() @IsString() resumeUrl?: string;

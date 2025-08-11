@@ -1,11 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { db } from '../db/client'; // adjust if different
-import { user as userTable } from '../db/schema'; // drizzle schema
+import { user, user as userTable } from '../db/schema'; // drizzle schema
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
-
 
 @Injectable()
 export class AuthService {
@@ -98,7 +97,7 @@ export class AuthService {
 
   async getUserFromToken(token: string) {
     try {
-      const payload = await this.jwt.verifyAsync(token);
+      const payload = await this.jwtService.verifyAsync(token);
       const [foundUser] = await db
         .select()
         .from(user)
@@ -110,8 +109,7 @@ export class AuthService {
 
       return foundUser;
     } catch (err) {
-      throw new UnauthorizedException('Invalid token');
-     }
-}
-
+      throw new UnauthorizedException(err, 'Invalid token');
+    }
+  }
 }

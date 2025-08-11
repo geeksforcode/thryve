@@ -6,7 +6,7 @@ import { CreateJobSeekerDto } from './dto/create-jobseeker.dto';
 import { UpdateResumeDto } from './dto/update-resume.dto';
 import { NotFoundException } from '@nestjs/common';
 import { CreateQuestionDto } from '../interview-prep/dto/create-question.dto';
-import { questions } from '../db/schema'; // adjust path if needed
+import { questions } from '../db/schema';
 
 @Injectable()
 export class JobSeekerService {
@@ -23,10 +23,10 @@ export class JobSeekerService {
   }
 
   async findByUserId(userId: string) {
-  const [seeker] = await db
-    .select()
-    .from(jobSeekers)
-    .where(eq(jobSeekers.userId, userId));
+    const [seeker] = await db
+      .select()
+      .from(jobSeekers)
+      .where(eq(jobSeekers.userId, userId));
 
     return seeker;
   }
@@ -65,4 +65,3 @@ export class InterviewPrepService {
     return db.insert(questions).values(dto).returning();
   }
 }
-

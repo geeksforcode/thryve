@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '../db/client';
 import { jobs } from '../db/schema';
-import { eq, ilike } from 'drizzle-orm';
 
 @Injectable()
 export class JobService {
@@ -20,7 +19,7 @@ export class JobService {
     const matched = allJobs.filter((job) => {
       const jobSkills = (job.skillsRequired as string[]) ?? [];
       return jobSkills.some((skill: string) =>
-        skills.includes(skill.toLowerCase())
+        skills.includes(skill.toLowerCase()),
       );
     });
 

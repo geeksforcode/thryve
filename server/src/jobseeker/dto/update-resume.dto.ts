@@ -1,58 +1,67 @@
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  ValidateNested,
-} from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class EducationEntry {
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   school?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   degree?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   startYear?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   endYear?: string;
 }
 
 class ExperienceEntry {
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   company?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   title?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   start?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   end?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   description?: string;
 }
 
 export class UpdateResumeDto {
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   bio?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   resumeUrl?: string;
 
-  @IsOptional() @IsArray()
+  @IsOptional()
+  @IsArray()
   skills?: string[];
 
-  @IsOptional() @IsArray()
+  @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EducationEntry)
   education?: EducationEntry[];
 
-  @IsOptional() @IsArray()
+  @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ExperienceEntry)
   experience?: ExperienceEntry[];

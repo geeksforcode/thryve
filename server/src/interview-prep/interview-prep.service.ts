@@ -5,7 +5,6 @@ import { db } from '../db/client';
 import { interviewQuestions } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
-
 @Injectable()
 export class InterviewPrepService {
   async createQuestion(dto: CreateQuestionDto) {
@@ -14,8 +13,8 @@ export class InterviewPrepService {
 
   async getQuestionsByCategory(category: string) {
     return db
-        .select()
-        .from(interviewQuestions)
-        .where(eq(interviewQuestions.category, category));
-  }   
+      .select()
+      .from(interviewQuestions)
+      .where(eq(interviewQuestions.category, category));
+  }
 }

@@ -1,9 +1,9 @@
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreateQuestionDto {
-  @IsString()
+  // Required property, matching the schema
   question!: string;
-
+  @IsOptional()
   @IsString()
-  category!: string;
+  category?: string;
 }
