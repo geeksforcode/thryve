@@ -8,6 +8,8 @@ import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+
+import { newProfiles } from './profile';
 // import * as jwt from 'jsonwebtoken';
 interface OAuthUser {
   provider: 'google' | 'facebook';
@@ -15,6 +17,8 @@ interface OAuthUser {
   displayName: string;
   // Add other properties as needed
 }
+// employer same as company
+// const roles = ['job-seeker', 'artist', 'investor', 'employer'];
 @Injectable()
 export class AuthService {
   constructor(private jwt: JwtService) {}
@@ -28,15 +32,34 @@ export class AuthService {
   ) {
     try {
       const hash = await bcrypt.hash(password, 10);
-      await db.insert(users).values({
-        email,
-        password: hash,
-        firstName,
-        lastName,
-        username,
-        role,
+
+      const newUser = await db.transaction(async (tx) => {
+        const [usr] = await tx
+          .insert(users)
+          .values({
+            email,
+            password: hash,
+            firstName,
+            lastName,
+            username,
+            role,
+          })
+          .returning();
+        const full_name = `${usr.firstName} ${usr.lastName}`;
+        try {
+          await newProfiles(usr.role, usr.id, usr.email, full_name);
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            throw new InternalServerErrorException(err.message);
+          }
+          throw new InternalServerErrorException(
+            'Something went wrong during registration',
+          );
+        }
+        const { password, ...safeUser } = usr;
+        return safeUser;
       });
-      return { message: 'User created' };
+      return { message: 'User created', newUser };
     } catch (err: unknown) {
       if (err instanceof Error) {
         throw new InternalServerErrorException(err.message);

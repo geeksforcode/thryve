@@ -32,11 +32,12 @@ export const users = pgTable('users', {
 export const profiles = pgTable('profiles', {
   id: idCol(),
   userId: userIdCol(),
-  title: text('title'),
-  avatar: text('avatar'),
-  location: text('location'),
-  phone: text('phone'),
-  bio: text('bio'),
+  email: text('email'),
+  title: text('title').default(''),
+  avatar: text('avatar').default(''),
+  location: text('location').default(''),
+  phone: text('phone').default(''),
+  bio: text('bio').default(''),
   rating: numeric('rating', { precision: 2, scale: 1 }).default('0'),
   completedProjects: integer('completed_projects').default(0),
   reviewCount: integer('review_count').default(0),
@@ -45,9 +46,10 @@ export const profiles = pgTable('profiles', {
 });
 
 // ---------- ARTISTS ----------
-export const artistsProfile = pgTable('artists_profile', {
+export const artistsProfiles = pgTable('artists_profile', {
   id: idCol(),
   userId: userIdCol(),
+  email: text('email'),
   specialty: text('specialty'),
   avatar: text('avatar'),
   location: text('location'),
@@ -61,6 +63,7 @@ export const artistsProfile = pgTable('artists_profile', {
 export const investorsProfiles = pgTable('investors_profiles', {
   id: idCol(),
   userId: userIdCol(),
+  email: text('email'),
   title: text('title'),
   firm: text('firm'),
   avatar: text('avatar'),
@@ -75,12 +78,13 @@ export const investorsProfiles = pgTable('investors_profiles', {
 // ---------- COMPANIES ----------
 export const companies = pgTable('companies', {
   id: idCol(),
+  userId: userIdCol(),
+  email: text('email'),
   companyName: text('company_name').notNull(),
   industry: text('industry'),
   logo: text('logo'),
   location: text('location'),
   website: text('website'),
-  email: text('email').notNull().unique(),
   phone: text('phone'),
   description: text('description'),
   companySize: text('company_size'),
@@ -273,7 +277,7 @@ export const companyStats = pgTable('company_stats', {
 // ---------- ARTIST DATA ----------
 export const portfolios = pgTable('portfolios', {
   id: idCol(),
-  artistId: integer('artist_id').references(() => artistsProfile.id, {
+  artistId: integer('artist_id').references(() => artistsProfiles.id, {
     onDelete: 'cascade',
   }),
   title: text('title').notNull(),
@@ -288,7 +292,7 @@ export const artistStats = pgTable('artist_stats', {
   id: idCol(),
   artistId: integer('artist_id')
     .unique()
-    .references(() => artistsProfile.id, { onDelete: 'cascade' }),
+    .references(() => artistsProfiles.id, { onDelete: 'cascade' }),
   totalLikes: integer('total_likes').default(0),
   totalViews: integer('total_views').default(0),
   followers: integer('followers').default(0),
