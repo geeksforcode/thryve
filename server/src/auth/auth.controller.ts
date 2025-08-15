@@ -25,11 +25,11 @@ export class AuthController {
     const parsed = registerSchema.parse(body);
     return this.auth.register(
       parsed.email,
+      parsed.lastName,
+      parsed.firstName,
       parsed.password,
       parsed.username,
       parsed.role,
-      parsed.lastName,
-      parsed.firstName,
     );
   }
 
