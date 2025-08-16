@@ -19,11 +19,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     refreshToken: string,
     profile: any,
     done: VerifyCallback,
-  ) {
-    const { emails, displayName } = profile;
+  ): Promise<any> {
+    const { emails, displayName, photos } = profile;
+    const email = emails?.[0]?.value;
+
     const user = await this.authService.validateOAuthUser({
-      email: emails[0].value,
+      email,
       username: displayName,
+      picture: photos?.[0]?.value,
       provider: 'google',
     });
 

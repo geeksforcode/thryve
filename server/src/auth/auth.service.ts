@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { db } from '../db/client';
 import { users } from '../db/schema';
+import { user as userTable } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -15,13 +16,43 @@ interface OAuthUser {
   provider: 'google' | 'facebook';
   emails: { value: string }[];
   displayName: string;
-  // Add other properties as needed
+  photos?: { value: string }[];
 }
 // employer same as company
 // const roles = ['job-seeker', 'artist', 'investor', 'employer'];
 @Injectable()
 export class AuthService {
   constructor(private jwt: JwtService) {}
+
+  async validateOauthUser(payload: {
+    email: string;
+    username: string;
+    picture?: string;
+    provider: 'google' | 'facebook';
+  }) {
+    const existingUser = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.email, payload.email))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return existingUser[0];
+    }
+
+    // Create new User
+    const [newUser] = await db
+      .insert(userTable)
+      .values({
+        email: payload.email,
+        username: payload.username,
+        role: 'user',
+        password: '',
+      })
+      .returning();
+
+    return newUser;
+  }
   async register(
     email: string,
     firstName: string,
@@ -100,26 +131,30 @@ export class AuthService {
     email,
     username,
     provider,
+    picture,
   }: {
     email: string;
     username: string;
     provider: string;
+    picture?: string;
   }): Promise<any> {
     // Implement your logic: Check if the user exists, create one, etc.
-    const user = { email, username, provider };
+    const user = { email, username, provider, picture };
     return user;
   }
   async validateOAuthLogin({
     email,
     username,
     provider,
+    picture,
   }: {
     email: string;
     username: string;
     provider: string;
+    picture?: string;
   }): Promise<any> {
     // Implement your logic: Check if the user exists, create one, etc.
-    const user = { email, username, provider };
+    const user = { email, username, provider, picture };
     return user;
   }
   // New OAuth login method with a distinct name
@@ -137,6 +172,7 @@ export class AuthService {
         email: oAuthUser.emails?.[0]?.value,
         username: oAuthUser.displayName,
         provider: 'facebook',
+        picture: oAuthUser.photos?.[0]?.value,
       });
     } else {
       throw new Error('Unknown OAuth provider');

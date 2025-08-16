@@ -11,7 +11,7 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
       clientID: process.env.FACEBOOK_APP_ID!,
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
       callbackURL: 'http://localhost:5000/auth/facebook/callback',
-      profileFields: ['emails', 'name', 'displayName'],
+      profileFields: ['id', 'emails', 'name', 'displayName', 'photos'],
     });
   }
 
@@ -27,6 +27,7 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
     await this.authService.validateOAuthLogin({
       email,
       username: profile.displayName,
+      picture: (profile as any).photos?.[0]?.value,
       provider: 'facebook',
     });
 
