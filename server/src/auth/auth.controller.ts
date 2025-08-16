@@ -12,9 +12,9 @@ import { AuthService } from './auth.service';
 import { registerSchema } from './dto/auth.dto';
 import { loginSchema } from './dto/auth.dto';
 import { Response, Request } from 'express';
-interface AuthenticatedRequest extends Request {
-  user: any;
-}
+// interface AuthenticatedRequest extends Request {
+// user: any;
+// }
 
 @Controller('auth')
 export class AuthController {
@@ -41,7 +41,7 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth() {
+  googleAuth() {
     return { msg: 'Redirecting to Google...' };
   }
 
@@ -56,7 +56,7 @@ export class AuthController {
 
   @Get('facebook')
   @UseGuards(AuthGuard('facebook'))
-  async facebookAuth() {
+  facebookAuth() {
     return { msg: 'Redirecting to Facebook...' };
   }
 
