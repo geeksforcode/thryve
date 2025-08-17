@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
+// import { UsersModule } from './users/users.module';
 import { InvestorsModule } from './users/investors/investors.module';
 import { EmployeesModule } from './users/employees/employees.module';
 import { EmployersModule } from './users/employers/employers.module';
@@ -15,7 +15,7 @@ import { ArtistsModule } from './users/artists/artists.module';
       isGlobal: true,
     }),
     AuthModule,
-    UsersModule,
+    // UsersModule,
     InvestorsModule,
     EmployeesModule,
     EmployersModule,
