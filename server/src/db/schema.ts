@@ -63,6 +63,7 @@ export const artistsProfiles = pgTable('artists_profile', {
 export const investorsProfiles = pgTable('investors_profiles', {
   id: idCol(),
   userId: userIdCol(),
+  // add comany id
   email: text('email'),
   title: text('title'),
   firm: text('firm'),
@@ -74,6 +75,8 @@ export const investorsProfiles = pgTable('investors_profiles', {
   createdAt: createdAtCol(),
   updatedAt: updatedAtCol(),
 });
+
+// how to allow artist to view artists portfolio
 
 // ---------- COMPANIES ----------
 export const companies = pgTable('companies', {
