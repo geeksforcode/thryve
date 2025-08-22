@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MapPin, Briefcase, TrendingUp, Building } from "lucide-react"
 import SearchBar from "@/components/SearchBar"
 import Navigation from "@/components/Navigation"
+import { useEffect, useState } from "react";
+import { getAllInvestors } from "@/api";
 
 const InvestorListings = () => {
   // Mock data for investors
@@ -66,6 +68,25 @@ const InvestorListings = () => {
       successfulExits: 7,
     },
   ]
+
+    const [investorss, setInvestors] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchInvestors = async () => {
+        try {
+          const data = await getAllInvestors(); 
+          setInvestors(data);
+        } catch (err) {
+          console.error("Failed to fetch investors:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchInvestors();
+    }, []);
+
+    if (loading) return <div className="text-center mt-10">Loading Investors...</div>
 
   return (
     <div className="min-h-screen bg-background">
