@@ -20,6 +20,7 @@ import { CreatePortfolioCompanyDto, UpdatePortfolioCompanyDto } from './dto/port
 
 @Controller('investor-profile')
 export class InvestorsController {
+	investorsService: any;
 	constructor(private readonly service: InvestorsService) {}
 
 	// Investor Profile
@@ -27,6 +28,11 @@ export class InvestorsController {
 	@Post()
 	create(@Body() body: CreateInvestorProfileDto) {
 		return this.service.createProfile(body);
+	}
+
+	@Get('investor-profile')
+	async getAll() {
+		return this.investorsService. getAllProfiles();
 	}
 
 	@Get(':id')

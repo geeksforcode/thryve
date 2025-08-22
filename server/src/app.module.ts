@@ -14,7 +14,6 @@ import { ArtistsModule } from './users/artists/artists.module';
       isGlobal: true,
     }),
     AuthModule,
-     investors
     InvestorsModule,
     EmployeesModule,
     EmployersModule,
