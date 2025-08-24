@@ -5,7 +5,6 @@ Thryve is a web application that connects skilled individuals like freelancers, 
 
 **Live Project:** [https://thryve-final-project.vercel.app/](https://thryve-final-project.vercel.app/)
 
----
 
 ## Goals & Objectives
 
