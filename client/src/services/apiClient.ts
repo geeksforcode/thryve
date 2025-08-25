@@ -1,8 +1,9 @@
-const API_URL = import.meta.env.VITE_BASE_URL;
+// const API_URL = import.meta.env.VITE_BASE_URL;
+//
+const API_URL = "http:8000/";
 
-
-const getAccessToken = () => localStorage.getItem("access");
-const getRefreshToken = () => localStorage.getItem("refresh");
+const getAccessToken = () => localStorage.getItem("thryve_access_token");
+const getRefreshToken = () => localStorage.getItem("thryve_refresh_token");
 
 const getDefaultHeaders = () => {
   const token = getAccessToken();
@@ -44,7 +45,7 @@ const fetchAPI = async (
   method: string = "GET",
   body?: any,
   isFormData = false,
-  retry: boolean = true
+  retry: boolean = true,
 ): Promise<any> => {
   const headers = isFormData
     ? {
@@ -85,7 +86,6 @@ const fetchAPI = async (
     throw err;
   }
 };
-
 
 // LOGIN
 export const login = async (data: { email: string; password: string }) => {
@@ -135,3 +135,9 @@ export const logout = () => {
 
 export const getCurrentUser = () => fetchAPI("me/");
 // export const getBlogCategory = (slug: string) => fetchAPI(`blog-categories/${slug}/`);
+//
+export const getArtist = (body: any) =>
+  fetchAPI(`/api/artiststs/`, "POST", body);
+
+export const updateProfile = (data: any) =>
+  fetchAPI("/api/auth/update/", "PATCH", body);
