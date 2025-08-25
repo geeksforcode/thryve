@@ -70,7 +70,7 @@ Thryve is a web application that connects skilled individuals like freelancers, 
 - Tailwind CSS
 - Shadcn UI
 - Radix UI
-- Redux
+- Redux.
 
 ### Backend
 - Node.js
