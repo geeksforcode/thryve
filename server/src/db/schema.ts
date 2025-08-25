@@ -301,3 +301,15 @@ export const artistStats = pgTable('artist_stats', {
   followers: integer('followers').default(0),
   projects: integer('projects').default(0),
 });
+
+// ---------- USER----------
+export const user = pgTable('user', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  password: text('password'),
+  role: text('role').default('user').notNull(),
+  username: text('username').notNull(),
+  // new fields
+  provider: text('provider').default('local').notNull(),
+  picture: text('picture'),
+});

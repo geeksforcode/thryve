@@ -1,4 +1,4 @@
-# Thryve Project Documentation
+# Thryve Final Project
 ## Project Description
 
 Thryve is a web application that connects skilled individuals like freelancers, artisans, and plumbers with clients who need their services. It has AI-enhanced discovery, smart recommendations, and project-based showcases, TalentConnect becomes more than a portfolio or job board – it’s a dynamic ecosystem. It bridges the gap between skilled artisans and potential employers and investors where talented individuals struggle to showcase their work in meaningful ways, and investors/employers face difficulty in identifying, validating, and collaborating with emerging talents.
