@@ -1,9 +1,9 @@
 // const API_URL = import.meta.env.VITE_BASE_URL;
 //
-const API_URL = "http:8000/";
+const API_URL = "http://localhost:8000/";
 
-const getAccessToken = () => localStorage.getItem("thryve_access_token");
-const getRefreshToken = () => localStorage.getItem("thryve_refresh_token");
+const getAccessToken = () => localStorage.getItem("access");
+const getRefreshToken = () => localStorage.getItem("refresh");
 
 const getDefaultHeaders = () => {
   const token = getAccessToken();
@@ -136,8 +136,55 @@ export const logout = () => {
 export const getCurrentUser = () => fetchAPI("me/");
 // export const getBlogCategory = (slug: string) => fetchAPI(`blog-categories/${slug}/`);
 //
-export const getArtist = (body: any) =>
-  fetchAPI(`/api/artiststs/`, "POST", body);
+
+export const getArtist = (body: any) => 
+  fetchAPI(`/api/artists/`, "POST",body);
 
 export const updateProfile = (data: any) =>
-  fetchAPI("/api/auth/update/", "PATCH", body);
+  fetchAPI("/api/auth/update/", "PATCH", data);
+
+// FACEBOOK LOGIN
+export const loginWithFacebook = async () => {
+  window.location.href = `${API_URL}auth/facebook/`;
+};
+
+// FACEBOOK CALLBACK HANDLER
+export const handleFacebookCallback = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get("code");
+
+  if (!code) throw new Error("No code found in Facebook callback URL");
+
+  const res = await fetchAPI(`auth/facebook/callback/?code=${code}`, "GET");
+
+  if (res.access && res.refresh) {
+    localStorage.setItem("access", res.access);
+    localStorage.setItem("refresh", res.refresh);
+  } else {
+    throw new Error("Facebook login failed");
+  }
+
+  return res;
+}
+
+// GOOGLE LOGIN
+
+export const loginWithGoogle = () => {
+  window.location.href = `${API_URL}auth/google`
+}
+export const handleGoogleCallback = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+
+
+  if (!code) throw new Error("Google auth code not found");
+
+  const res = await fetchAPI("auth/google/callback", "POST", { code });
+
+  if (res.access && res.refresh) {
+    localStorage.setItem("access", res.access);
+    localStorage.setItem("refresh", res.refresh);
+  }
+
+  return res;
+};

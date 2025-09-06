@@ -22,7 +22,7 @@ import {
   TrendingUp,
   Building,
 } from "lucide-react";
-import { register, updateProfile } from "@/services/apiClient";
+import { loginWithFacebook, loginWithGoogle, register, updateProfile } from "@/services/apiClient";
 
 const Auth = () => {
   const [selectedRole, setSelectedRole] = useState("");
@@ -335,7 +335,7 @@ const Auth = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={loginWithGoogle}>
                       <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                         <path
                           fill="currentColor"
@@ -356,7 +356,7 @@ const Auth = () => {
                       </svg>
                       Google
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={loginWithFacebook}>
                       <svg
                         className="h-4 w-4 mr-2"
                         fill="currentColor"

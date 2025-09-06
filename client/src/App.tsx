@@ -18,6 +18,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import PremiumUpgrade from "./pages/PremiumUpgrade";
 import Auth from "./pages/Auth";
+import FacebookCallbackPage from "./pages/FacebookcallbackPage";
+import GoogleCallbackPage from "./pages/GoogleCallbackPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
+          <Route path="/auth/facebook/callback" element={<FacebookCallbackPage />}/>
+          <Route path="/auth/google/callback" element={<GoogleCallbackPage />}/>
         </Routes>
       </HashRouter>
     </TooltipProvider>
