@@ -15,6 +15,13 @@
       "when": 1755889272049,
       "tag": "0001_cold_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757424926808,
+      "tag": "0002_majestic_sunfire",
+      "breakpoints": true
     }
   ]
 }

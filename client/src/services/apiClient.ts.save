@@ -1,6 +1,6 @@
 // const API_URL = import.meta.env.VITE_BASE_URL;
 //
-const API_URL = "http://localhost:3000/";
+const API_URL = "http://localhost:8080/";
 
 const getAccessToken = () => localStorage.getItem("access");
 const getRefreshToken = () => localStorage.getItem("refresh");

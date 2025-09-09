@@ -20,6 +20,7 @@ import PremiumUpgrade from "./pages/PremiumUpgrade";
 import Auth from "./pages/Auth";
 import FacebookCallbackPage from "./pages/FacebookcallbackPage";
 import GoogleCallbackPage from "./pages/GoogleCallbackPage";
+import AuthSuccess from "./pages/AuthSuccess";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
       <HashRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/listings/job-seekers" element={<JobSeekerListings />} />
           <Route path="/listings/artists" element={<ArtistListings />} />
           <Route path="/listings/investors" element={<InvestorListings />} />
@@ -44,10 +46,11 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/upgrade" element={<PremiumUpgrade />} />
           <Route path="/auth" element={<Auth />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          <Route path="/auth/facebook/callback" element={<FacebookCallbackPage />} />
+          <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
+
           <Route path="*" element={<NotFound />} />
-          <Route path="/auth/facebook/callback" element={<FacebookCallbackPage />}/>
-          <Route path="/auth/google/callback" element={<GoogleCallbackPage />}/>
         </Routes>
       </HashRouter>
     </TooltipProvider>

@@ -4,55 +4,23 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { db } from '../db/client';
-import { users } from '../db/schema';
-import { user as userTable } from '../db/schema';
+import { users as userTable } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-
 import { newProfiles } from './profile';
-// import * as jwt from 'jsonwebtoken';
+
 interface OAuthUser {
   provider: 'google' | 'facebook';
   emails: { value: string }[];
   displayName: string;
   photos?: { value: string }[];
 }
-// employer same as company
-// const roles = ['job-seeker', 'artist', 'investor', 'employer'];
+
 @Injectable()
 export class AuthService {
   constructor(private jwt: JwtService) {}
 
-  async validateOauthUser(payload: {
-    email: string;
-    username: string;
-    picture?: string;
-    provider: 'google' | 'facebook';
-  }) {
-    const existingUser = await db
-      .select()
-      .from(userTable)
-      .where(eq(userTable.email, payload.email))
-      .limit(1);
-
-    if (existingUser.length > 0) {
-      return existingUser[0];
-    }
-
-    // Create new User
-    const [newUser] = await db
-      .insert(userTable)
-      .values({
-        email: payload.email,
-        username: payload.username,
-        role: 'user',
-        password: '',
-      })
-      .returning();
-
-    return newUser;
-  }
   async register(
     email: string,
     firstName: string,
@@ -66,7 +34,7 @@ export class AuthService {
 
       const newUser = await db.transaction(async (tx) => {
         const [usr] = await tx
-          .insert(users)
+          .insert(userTable)
           .values({
             email,
             password: hash,
@@ -76,7 +44,9 @@ export class AuthService {
             role,
           })
           .returning();
+
         const full_name = `${usr.firstName} ${usr.lastName}`;
+
         try {
           await newProfiles(usr.role, usr.id, usr.email, full_name);
         } catch (err: unknown) {
@@ -87,9 +57,11 @@ export class AuthService {
             'Something went wrong during registration',
           );
         }
+
         const { password, ...safeUser } = usr;
         return safeUser;
       });
+
       return { message: 'User created', newUser };
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -100,23 +72,21 @@ export class AuthService {
       );
     }
   }
+
   async login(email: string, password: string) {
     try {
       const [foundUser] = await db
         .select()
-        .from(users)
-        .where(eq(users.email, email));
+        .from(userTable)
+        .where(eq(userTable.email, email));
+
       if (!foundUser) throw new UnauthorizedException('Invalid credentials');
+
       const match = await bcrypt.compare(password, foundUser.password);
       if (!match) throw new UnauthorizedException('Invalid credentials');
-      const token = await this.jwt.signAsync({
-        sub: foundUser.id,
-        username: foundUser.username,
-        email: foundUser.email,
-        role: foundUser.role,
-        firstName: foundUser.firstName,
-        lastName: foundUser.lastName,
-      });
+
+      const token = await this.signJwt(foundUser);
+
       return { access_token: token };
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -127,48 +97,66 @@ export class AuthService {
       );
     }
   }
+
   async validateOAuthUser({
-    email,
-    username,
-    provider,
-    picture,
-  }: {
-    email: string;
-    username: string;
-    provider: string;
-    picture?: string;
-  }): Promise<any> {
-    // Implement your logic: Check if the user exists, create one, etc.
-    const user = { email, username, provider, picture };
-    return user;
+  email,
+  username,
+  provider,
+  picture,
+}: {
+  email?: string;
+  username: string;
+  provider: string;
+  picture?: string;
+}): Promise<any> {
+  const safeEmail =
+    email && email.trim().length > 0
+      ? email
+      : `${provider}_${Date.now()}@${provider}.com`; // fallback email
+
+  const existingUser = await this.db.query.users.findFirst({
+    where: (u, { eq }) => eq(u.email, profile.emails[0].value),
+  });
+
+  if (existingUser) {
+    return existingUser;
   }
-  async validateOAuthLogin({
-    email,
-    username,
-    provider,
-    picture,
-  }: {
-    email: string;
-    username: string;
-    provider: string;
-    picture?: string;
-  }): Promise<any> {
-    // Implement your logic: Check if the user exists, create one, etc.
-    const user = { email, username, provider, picture };
-    return user;
-  }
-  // New OAuth login method with a distinct name
+
+  // Split username into first/last name safely
+  const displayName = username || "Unknown User";
+  const [firstName, ...rest] = displayName.split(" ");
+  const lastName = rest.join(" ") || "OAuth";
+
+  // Create new OAuth user with defaults
+  const [newUser] = await db
+    .insert(userTable)
+    .values({
+      email: safeEmail,
+      username: displayName,
+      role: "jobseeker",
+      password: "oauth",
+      firstName: firstName || "OAuth",
+      lastName: lastName || "User",
+      provider,
+    })
+    .returning();
+
+  return newUser;
+}
+
+
+
   async loginOAuth(oAuthUser: OAuthUser): Promise<{ access_token: string }> {
     let user;
+
     if (oAuthUser.provider === 'google') {
-      // Use optional chaining: oAuthUser.emails?.[0]?.value
       user = await this.validateOAuthUser({
         email: oAuthUser.emails?.[0]?.value,
         username: oAuthUser.displayName,
         provider: 'google',
       });
     } else if (oAuthUser.provider === 'facebook') {
-      user = await this.validateOAuthLogin({
+      user = await this.validateOAuthUser({
         email: oAuthUser.emails?.[0]?.value,
         username: oAuthUser.displayName,
         provider: 'facebook',
@@ -177,8 +165,24 @@ export class AuthService {
     } else {
       throw new Error('Unknown OAuth provider');
     }
-    const payload = { email: user.email, provider: user.provider };
-    const access_token = await this.jwt.signAsync(payload, { expiresIn: '1h' });
-    return { access_token };
+
+    const token = await this.signJwt(user);
+
+    return { access_token: token };
+  }
+
+  private async signJwt(user: any): Promise<string> {
+    return this.jwt.signAsync(
+      {
+        sub: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        provider: user.provider,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+      { expiresIn: '1h' },
+    );
   }
 }
