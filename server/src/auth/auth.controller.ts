@@ -48,9 +48,12 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleRedirect(@Req() req, @Res() res: Response) {
-    const token = await this.auth.loginOAuth(req.user);
+    const token = await this.auth.loginOAuth({
+      ...req.user,
+      provider: 'google',
+    });
     res.redirect(
-      `http://localhost:3000/auth-success?token=${token.access_token}`,
+      `http://localhost:8080/#/auth-success?token=${token.access_token}`,
     );
   }
 
@@ -63,9 +66,12 @@ export class AuthController {
   @Get('facebook/callback')
   @UseGuards(AuthGuard('facebook'))
   async facebookRedirect(@Req() req, @Res() res: Response) {
-    const token = await this.auth.loginOAuth(req.user);
+    const token = await this.auth.loginOAuth({
+      ...req.user,
+      provider: 'facebook',
+    });
     res.redirect(
-      `http://localhost:3000/auth-success?token=${token.access_token}`,
+      `http://localhost:8080/#/auth-success?token=${token.access_token}`,
     );
   }
 }
