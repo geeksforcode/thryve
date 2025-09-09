@@ -112,20 +112,26 @@ export class AuthService {
   const safeEmail =
     email && email.trim().length > 0
       ? email
-      : `${provider}_${Date.now()}@${provider}.com`; // fallback email
+      : `${provider}_${Date.now()}@${provider}.com`;
+    
+   if (!email) {
+    email = `${provider}_${Date.now()}@noemail.com`;
+  }
 
-  const existingUser = await this.db.query.users.findFirst({
-    where: (u, { eq }) => eq(u.email, profile.emails[0].value),
-  });
+  const existingUser = await db
+    .select()
+    .from(userTable)
+    .where(eq(userTable.email, email))
+    .limit(1);
 
-  if (existingUser) {
-    return existingUser;
+  if (existingUser.length > 0) {
+    return existingUser[0];
   }
 
   // Split username into first/last name safely
-  const displayName = username || "Unknown User";
+  const displayName = username || `user_${Date.now()}`;
   const [firstName, ...rest] = displayName.split(" ");
-  const lastName = rest.join(" ") || "OAuth";
+  const lastName = rest.join(" ") || provider;
 
   // Create new OAuth user with defaults
   const [newUser] = await db
