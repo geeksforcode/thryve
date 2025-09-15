@@ -27,8 +27,8 @@ const ArtistProfile = () => {
 
   const fetchProfile = async () => {
     try {
-      if (!id) return;
-      const data = await getArtist();
+      if (!id) throw new Error(`Artist${id} not found`);
+      const data = await getArtist(+id);
       setArtistProfile(data);
       console.log(data);
     } catch (err) {
@@ -38,7 +38,7 @@ const ArtistProfile = () => {
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [id]);
 
   // Mock profile data
   const profile = {

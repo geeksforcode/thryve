@@ -8,9 +8,10 @@ import { VerifyCallback } from 'passport-google-oauth20';
 export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
   constructor(private authService: AuthService) {
     super({
-      clientID: process.env.FACEBOOK_APP_ID!,
-      clientSecret: process.env.FACEBOOK_APP_SECRET!,
-      callbackURL: 'http://localhost:5000/auth/facebook/callback',
+      clientID: process.env.FACEBOOK_CLIENT_ID!,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+      callbackURL: 'http://localhost:3000/auth/facebook/callback',
+      scope: ['public_profile', 'email'],
       profileFields: ['id', 'emails', 'name', 'displayName', 'photos'],
     });
   }
@@ -24,7 +25,7 @@ export class FacebookStrategy extends PassportStrategy(Strategy, 'facebook') {
     const email =
       profile.emails?.[0].value || `no-email-${Date.now()}@facebook.com`;
 
-    await this.authService.validateOAuthLogin({
+    await this.authService.validateOAuthUser({
       email,
       username: profile.displayName,
       picture: (profile as any).photos?.[0]?.value,

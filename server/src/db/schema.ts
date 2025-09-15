@@ -4,6 +4,7 @@ import {
   timestamp,
   serial,
   integer,
+  varchar,
   numeric,
   primaryKey,
 } from 'drizzle-orm/pg-core';
@@ -20,12 +21,13 @@ const updatedAtCol = () =>
 // ---------- USERS ----------
 export const users = pgTable('users', {
   id: idCol('user_id'),
-  firstName: text('first_name').notNull(),
-  lastName: text('last_name').notNull(),
+  firstName: text('first_name').notNull().default(""),
+  lastName: text('last_name').notNull().default(""),
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
   role: text('role').notNull(),
   username: text('username').notNull().unique(),
+  provider: varchar('provider', { length: 50 }).notNull().default('local'),
 });
 
 // ---------- GENERIC PROFILES ----------
