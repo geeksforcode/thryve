@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label"
 import { 
   MapPin, Mail, Phone, Edit, Plus, Building, Users, Globe, 
   DollarSign, Clock, Loader2, FileText, BarChart, X, Save,
-  ExternalLink, Eye
+  ExternalLink, Eye, AlertCircle
 } from "lucide-react"
 import Navigation from "@/components/Navigation"
 import { useState, useEffect } from "react"
 import { 
   getEmployerProfile, 
+  createEmployerProfile,
   updateEmployerProfile, 
   uploadCompanyLogo,
   getEmployerJobs,
@@ -37,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface CompanyProfile {
   id: number;
@@ -132,6 +134,7 @@ const EmployerProfile = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [editData, setEditData] = useState<EditProfileData>({
     company_name: '',
     industry: '',
@@ -171,31 +174,64 @@ const EmployerProfile = () => {
     const loadData = async () => {
       try {
         setIsLoading(true)
-        const [profileData, jobsData] = await Promise.all([
-          getEmployerProfile(),
-          getEmployerJobs()
-        ])
+        setError(null)
         
-        setProfile(profileData)
-        setJobs(jobsData.results || jobsData)
+        console.log("📋 Loading employer profile and jobs...")
         
-        // Initialize edit data
-        setEditData({
-          company_name: profileData.company_name,
-          industry: profileData.industry,
-          description: profileData.description,
-          location: profileData.location,
-          website: profileData.website,
-          company_size: profileData.company_size,
-          founded_year: profileData.founded_year,
-          phone: profileData.phone,
-          email: profileData.email,
-          linkedin: profileData.linkedin,
-          twitter: profileData.twitter,
-          benefits: profileData.benefits || '',
-        })
-      } catch (error) {
-        console.error('Failed to load data:', error)
+        // Try to get profile
+        let profileData;
+        try {
+          profileData = await getEmployerProfile()
+          console.log("✅ Profile loaded:", profileData)
+          setProfile(profileData)
+          
+          // Initialize edit data from existing profile
+          setEditData({
+            company_name: profileData.company_name || '',
+            industry: profileData.industry || '',
+            description: profileData.description || '',
+            location: profileData.location || '',
+            website: profileData.website || '',
+            company_size: profileData.company_size || '',
+            founded_year: profileData.founded_year || undefined,
+            phone: profileData.phone || '',
+            email: profileData.email || '',
+            linkedin: profileData.linkedin || '',
+            twitter: profileData.twitter || '',
+            benefits: profileData.benefits || '',
+          })
+        } catch (profileError: any) {
+          console.log("⚠️ Profile not found or error:", profileError.message)
+          // Initialize empty form for new profile
+          setEditData({
+            company_name: '',
+            industry: '',
+            description: '',
+            location: '',
+            website: '',
+            company_size: '',
+            founded_year: undefined,
+            phone: '',
+            email: user?.email || '',
+            linkedin: '',
+            twitter: '',
+            benefits: '',
+          })
+        }
+        
+        // Load jobs
+        try {
+          const jobsData = await getEmployerJobs()
+          console.log("✅ Jobs loaded:", jobsData)
+          setJobs(jobsData.results || jobsData || [])
+        } catch (jobsError: any) {
+          console.error("❌ Error loading jobs:", jobsError)
+          setJobs([])
+        }
+        
+      } catch (error: any) {
+        console.error('❌ Failed to load data:', error)
+        setError(error.message || 'Failed to load profile data')
       } finally {
         setIsLoading(false)
       }
@@ -204,15 +240,53 @@ const EmployerProfile = () => {
     loadData()
   }, [])
 
+  const checkProfileExists = async (): Promise<boolean> => {
+    try {
+      await getEmployerProfile()
+      return true
+    } catch (error: any) {
+      if (error.message.includes('404') || error.message.includes('Not found')) {
+        return false
+      }
+      throw error
+    }
+  }
+
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true)
-      const updatedProfile = await updateEmployerProfile(editData)
+      setError(null)
+      
+      console.log("💾 Saving profile data:", editData)
+      
+      // Validate required fields
+      if (!editData.company_name.trim()) {
+        throw new Error("Company name is required")
+      }
+      if (!editData.industry.trim()) {
+        throw new Error("Industry is required")
+      }
+      
+      let updatedProfile;
+      const profileExists = await checkProfileExists()
+      
+      if (profileExists && profile) {
+        console.log("🔄 Updating existing profile...")
+        updatedProfile = await updateEmployerProfile(editData)
+      } else {
+        console.log("➕ Creating new profile...")
+        updatedProfile = await createEmployerProfile(editData)
+      }
+      
+      console.log("✅ Profile saved successfully:", updatedProfile)
       setProfile(updatedProfile)
       setIsEditing(false)
-    } catch (error) {
-      console.error('Failed to update profile:', error)
-      alert('Failed to update profile. Please try again.')
+      
+      alert("✅ Profile saved successfully!")
+    } catch (error: any) {
+      console.error('❌ Failed to save profile:', error)
+      setError(error.message || 'Failed to save profile. Please try again.')
+      alert(`❌ Failed to save profile: ${error.message}`)
     } finally {
       setIsSaving(false)
     }
@@ -223,13 +297,15 @@ const EmployerProfile = () => {
     if (!file) return
     
     try {
+      console.log("📤 Uploading logo:", file.name)
       await uploadCompanyLogo(file)
       // Reload profile to get updated logo
       const profileData = await getEmployerProfile()
       setProfile(profileData)
+      alert("✅ Logo uploaded successfully!")
     } catch (error) {
-      console.error('Failed to upload logo:', error)
-      alert('Failed to upload logo. Please try again.')
+      console.error('❌ Failed to upload logo:', error)
+      alert('❌ Failed to upload logo. Please try again.')
     }
   }
 
@@ -276,9 +352,20 @@ const EmployerProfile = () => {
 
   const handleSaveJob = async () => {
     try {
+      setError(null)
+      
+      if (!jobData.title.trim()) {
+        throw new Error("Job title is required")
+      }
+      if (!jobData.description.trim()) {
+        throw new Error("Job description is required")
+      }
+      
       if (editingJob) {
+        console.log("🔄 Updating job:", editingJob.id)
         await updateJob(editingJob.id, jobData)
       } else {
+        console.log("➕ Creating new job:", jobData)
         await createJob(jobData)
       }
       
@@ -287,9 +374,12 @@ const EmployerProfile = () => {
       setJobs(jobsData.results || jobsData)
       setShowJobDialog(false)
       setEditingJob(null)
-    } catch (error) {
-      console.error('Failed to save job:', error)
-      alert('Failed to save job. Please try again.')
+      
+      alert("✅ Job saved successfully!")
+    } catch (error: any) {
+      console.error('❌ Failed to save job:', error)
+      setError(error.message || 'Failed to save job. Please try again.')
+      alert(`❌ Failed to save job: ${error.message}`)
     }
   }
 
@@ -300,9 +390,10 @@ const EmployerProfile = () => {
       await deleteJob(jobId)
       // Remove job from list
       setJobs(jobs.filter(job => job.id !== jobId))
+      alert("✅ Job deleted successfully!")
     } catch (error) {
-      console.error('Failed to delete job:', error)
-      alert('Failed to delete job. Please try again.')
+      console.error('❌ Failed to delete job:', error)
+      alert('❌ Failed to delete job. Please try again.')
     }
   }
 
@@ -375,17 +466,14 @@ const EmployerProfile = () => {
     }
     
     try {
-      // Convert rating to string first, then parse as float
       const ratingValue = typeof profile.rating === 'string' 
         ? parseFloat(profile.rating) 
         : Number(profile.rating);
       
-      // Check if it's a valid number
       if (isNaN(ratingValue) || !isFinite(ratingValue)) {
         return '0.0';
       }
       
-      // Format to 1 decimal place
       return ratingValue.toFixed(1);
     } catch (error) {
       console.warn('Error formatting rating:', error);
@@ -393,12 +481,37 @@ const EmployerProfile = () => {
     }
   }
 
-  if (isLoading || !profile) {
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setError(null)
+    // Reset edit data to current profile data
+    if (profile) {
+      setEditData({
+        company_name: profile.company_name || '',
+        industry: profile.industry || '',
+        description: profile.description || '',
+        location: profile.location || '',
+        website: profile.website || '',
+        company_size: profile.company_size || '',
+        founded_year: profile.founded_year || undefined,
+        phone: profile.phone || '',
+        email: profile.email || '',
+        linkedin: profile.linkedin || '',
+        twitter: profile.twitter || '',
+        benefits: profile.benefits || '',
+      })
+    }
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="pt-20 flex justify-center items-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading profile...</p>
+          </div>
         </div>
       </div>
     )
@@ -410,6 +523,14 @@ const EmployerProfile = () => {
       
       <main className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           {/* Company Header */}
           <Card className="shadow-card mb-8">
             <CardHeader>
@@ -417,9 +538,9 @@ const EmployerProfile = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
                   <div className="relative">
                     <Avatar className="w-24 h-24 lg:w-32 lg:h-32 mx-auto sm:mx-0">
-                      <AvatarImage src={profile.logo} alt={profile.company_name} />
+                      <AvatarImage src={profile?.logo} alt={profile?.company_name || 'Company'} />
                       <AvatarFallback className="text-xl lg:text-2xl">
-                        {getInitials(profile.company_name)}
+                        {profile ? getInitials(profile.company_name) : 'CO'}
                       </AvatarFallback>
                     </Avatar>
                     {isEditing && (
@@ -436,6 +557,7 @@ const EmployerProfile = () => {
                           variant="secondary"
                           className="h-8 w-8 rounded-full"
                           onClick={() => document.getElementById('logo-upload')?.click()}
+                          disabled={isSaving}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -447,39 +569,49 @@ const EmployerProfile = () => {
                     {isEditing ? (
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="company_name">Company Name</Label>
+                          <Label htmlFor="company_name">Company Name *</Label>
                           <Input
                             id="company_name"
                             value={editData.company_name}
                             onChange={(e) => setEditData(prev => ({ ...prev, company_name: e.target.value }))}
+                            placeholder="Enter company name"
+                            disabled={isSaving}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="industry">Industry</Label>
+                          <Label htmlFor="industry">Industry *</Label>
                           <Input
                             id="industry"
                             value={editData.industry}
                             onChange={(e) => setEditData(prev => ({ ...prev, industry: e.target.value }))}
+                            placeholder="Enter industry"
+                            disabled={isSaving}
                           />
                         </div>
                       </div>
                     ) : (
                       <div>
                         <h1 className="text-2xl lg:text-3xl font-heading font-bold text-foreground mb-2">
-                          {profile.company_name}
+                          {profile?.company_name || 'Your Company'}
                         </h1>
-                        <p className="text-lg lg:text-xl text-primary font-medium mb-3">{profile.industry}</p>
+                        <p className="text-lg lg:text-xl text-primary font-medium mb-3">
+                          {profile?.industry || 'Industry not set'}
+                        </p>
                         
                         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0 text-muted-foreground text-sm lg:text-base">
-                          <div className="flex items-center justify-center sm:justify-start">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            {profile.location}
-                          </div>
-                          <div className="flex items-center justify-center sm:justify-start">
-                            <Users className="h-4 w-4 mr-2" />
-                            {profile.company_size}
-                          </div>
-                          {profile.founded_year && (
+                          {profile?.location && (
+                            <div className="flex items-center justify-center sm:justify-start">
+                              <MapPin className="h-4 w-4 mr-2" />
+                              {profile.location}
+                            </div>
+                          )}
+                          {profile?.company_size && (
+                            <div className="flex items-center justify-center sm:justify-start">
+                              <Users className="h-4 w-4 mr-2" />
+                              {profile.company_size}
+                            </div>
+                          )}
+                          {profile?.founded_year && (
                             <div className="flex items-center justify-center sm:justify-start">
                               <Building className="h-4 w-4 mr-2" />
                               Founded {profile.founded_year}
@@ -491,7 +623,7 @@ const EmployerProfile = () => {
 
                     <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 lg:gap-6 text-sm">
                       <div className="text-center">
-                        <div className="font-semibold text-foreground">{profile.total_jobs_posted}</div>
+                        <div className="font-semibold text-foreground">{profile?.total_jobs_posted || 0}</div>
                         <div className="text-muted-foreground">Jobs Posted</div>
                       </div>
                       <div className="text-center">
@@ -518,22 +650,7 @@ const EmployerProfile = () => {
                     size="sm" 
                     onClick={() => {
                       if (isEditing) {
-                        setIsEditing(false)
-                        // Reset edit data
-                        setEditData({
-                          company_name: profile.company_name,
-                          industry: profile.industry,
-                          description: profile.description,
-                          location: profile.location,
-                          website: profile.website,
-                          company_size: profile.company_size,
-                          founded_year: profile.founded_year,
-                          phone: profile.phone,
-                          email: profile.email,
-                          linkedin: profile.linkedin,
-                          twitter: profile.twitter,
-                          benefits: profile.benefits || '',
-                        })
+                        handleCancelEdit()
                       } else {
                         setIsEditing(true)
                       }
@@ -541,11 +658,12 @@ const EmployerProfile = () => {
                     disabled={isSaving}
                   >
                     <Edit className="h-4 w-4 mr-2" />
-                    {isEditing ? 'Cancel' : 'Edit Profile'}
+                    {isEditing ? 'Cancel' : profile ? 'Edit Profile' : 'Create Profile'}
                   </Button>
                   <Button 
                     className="bg-gradient-primary hover:opacity-90"
                     onClick={handleCreateJob}
+                    disabled={!profile}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Post New Job
@@ -555,6 +673,15 @@ const EmployerProfile = () => {
             </CardHeader>
           </Card>
 
+          {!profile && !isEditing && (
+            <Alert className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You haven't set up your company profile yet. Click "Create Profile" to get started.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
@@ -562,21 +689,64 @@ const EmployerProfile = () => {
               <Card className="shadow-card">
                 <CardHeader>
                   <h2 className="text-xl font-heading font-semibold text-foreground">
-                    About {profile.company_name}
+                    About {profile?.company_name || 'Your Company'}
                   </h2>
                 </CardHeader>
                 <CardContent>
                   {isEditing ? (
-                    <Textarea 
-                      value={editData.description}
-                      onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
-                      className="min-h-32"
-                      placeholder="Tell us about your company..."
-                    />
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="description">Company Description</Label>
+                        <Textarea 
+                          id="description"
+                          value={editData.description}
+                          onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                          className="min-h-32"
+                          placeholder="Tell us about your company..."
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="location">Location</Label>
+                          <Input
+                            id="location"
+                            value={editData.location}
+                            onChange={(e) => setEditData(prev => ({ ...prev, location: e.target.value }))}
+                            placeholder="e.g., San Francisco, CA"
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="company_size">Company Size</Label>
+                          <Input
+                            id="company_size"
+                            value={editData.company_size}
+                            onChange={(e) => setEditData(prev => ({ ...prev, company_size: e.target.value }))}
+                            placeholder="e.g., 50-100 employees"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {profile.description || 'No description provided.'}
-                    </p>
+                    <div className="space-y-4">
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {profile?.description || 'No description provided.'}
+                      </p>
+                      {profile?.location && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Location: {profile.location}
+                        </div>
+                      )}
+                      {profile?.company_size && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Users className="h-4 w-4 mr-2" />
+                          Company Size: {profile.company_size}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -587,7 +757,12 @@ const EmployerProfile = () => {
                   <h2 className="text-xl font-heading font-semibold text-foreground">
                     Open Positions ({jobs.filter(j => j.is_active).length})
                   </h2>
-                  <Button variant="outline" size="sm" onClick={handleCreateJob}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCreateJob}
+                    disabled={!profile}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Post New Job
                   </Button>
@@ -596,7 +771,12 @@ const EmployerProfile = () => {
                   {jobs.filter(j => j.is_active).length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-muted-foreground">No active job postings</p>
-                      <Button variant="outline" className="mt-4" onClick={handleCreateJob}>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4" 
+                        onClick={handleCreateJob}
+                        disabled={!profile}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Post Your First Job
                       </Button>
@@ -726,7 +906,7 @@ const EmployerProfile = () => {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Company Benefits */}
-              {(profile.benefits || isEditing) && (
+              {(profile?.benefits || isEditing) && (
                 <Card className="shadow-card">
                   <CardHeader>
                     <h2 className="text-lg font-heading font-semibold text-foreground">
@@ -740,11 +920,12 @@ const EmployerProfile = () => {
                         onChange={(e) => setEditData(prev => ({ ...prev, benefits: e.target.value }))}
                         placeholder="Enter benefits, one per line..."
                         className="min-h-32"
+                        disabled={isSaving}
                       />
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {parseBenefits(profile.benefits || '').length > 0 ? (
-                          parseBenefits(profile.benefits || '').map((benefit, index) => (
+                        {profile?.benefits && parseBenefits(profile.benefits).length > 0 ? (
+                          parseBenefits(profile.benefits).map((benefit, index) => (
                             <Badge key={index} variant="secondary" className="text-xs">
                               {benefit}
                             </Badge>
@@ -774,6 +955,7 @@ const EmployerProfile = () => {
                           id="email"
                           value={editData.email}
                           onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))}
+                          disabled={isSaving}
                         />
                       </div>
                       <div>
@@ -782,6 +964,7 @@ const EmployerProfile = () => {
                           id="phone"
                           value={editData.phone}
                           onChange={(e) => setEditData(prev => ({ ...prev, phone: e.target.value }))}
+                          disabled={isSaving}
                         />
                       </div>
                       <div>
@@ -790,6 +973,8 @@ const EmployerProfile = () => {
                           id="website"
                           value={editData.website}
                           onChange={(e) => setEditData(prev => ({ ...prev, website: e.target.value }))}
+                          placeholder="https://example.com"
+                          disabled={isSaving}
                         />
                       </div>
                       <div>
@@ -798,6 +983,8 @@ const EmployerProfile = () => {
                           id="linkedin"
                           value={editData.linkedin}
                           onChange={(e) => setEditData(prev => ({ ...prev, linkedin: e.target.value }))}
+                          placeholder="https://linkedin.com/company/..."
+                          disabled={isSaving}
                         />
                       </div>
                       <div>
@@ -806,22 +993,26 @@ const EmployerProfile = () => {
                           id="twitter"
                           value={editData.twitter}
                           onChange={(e) => setEditData(prev => ({ ...prev, twitter: e.target.value }))}
+                          placeholder="https://twitter.com/..."
+                          disabled={isSaving}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex items-center">
-                        <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span className="text-sm">{profile.email}</span>
-                      </div>
-                      {profile.phone && (
+                      {profile?.email && (
+                        <div className="flex items-center">
+                          <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
+                          <span className="text-sm">{profile.email}</span>
+                        </div>
+                      )}
+                      {profile?.phone && (
                         <div className="flex items-center">
                           <Phone className="h-4 w-4 mr-3 text-muted-foreground" />
                           <span className="text-sm">{profile.phone}</span>
                         </div>
                       )}
-                      {profile.website && (
+                      {profile?.website && (
                         <div className="flex items-center">
                           <Globe className="h-4 w-4 mr-3 text-muted-foreground" />
                           <a 
@@ -834,7 +1025,7 @@ const EmployerProfile = () => {
                           </a>
                         </div>
                       )}
-                      {profile.linkedin && (
+                      {profile?.linkedin && (
                         <div className="flex items-center">
                           <ExternalLink className="h-4 w-4 mr-3 text-muted-foreground" />
                           <a 
@@ -847,7 +1038,7 @@ const EmployerProfile = () => {
                           </a>
                         </div>
                       )}
-                      {profile.twitter && (
+                      {profile?.twitter && (
                         <div className="flex items-center">
                           <ExternalLink className="h-4 w-4 mr-3 text-muted-foreground" />
                           <a 
@@ -875,6 +1066,7 @@ const EmployerProfile = () => {
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={handleCreateJob}
+                    disabled={!profile}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Post New Job
@@ -883,6 +1075,7 @@ const EmployerProfile = () => {
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => navigate('/employer/jobs')}
+                    disabled={!profile}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Manage All Jobs
@@ -891,6 +1084,7 @@ const EmployerProfile = () => {
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => navigate('/employer/applications')}
+                    disabled={!profile}
                   >
                     <Users className="h-4 w-4 mr-2" />
                     View All Applicants
@@ -899,6 +1093,7 @@ const EmployerProfile = () => {
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => navigate('/employer/analytics')}
+                    disabled={!profile}
                   >
                     <BarChart className="h-4 w-4 mr-2" />
                     View Analytics
@@ -910,13 +1105,17 @@ const EmployerProfile = () => {
 
           {isEditing && (
             <div className="mt-8 flex justify-end space-x-4">
-              <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+              <Button 
+                variant="outline" 
+                onClick={handleCancelEdit} 
+                disabled={isSaving}
+              >
                 Cancel
               </Button>
               <Button 
                 className="bg-gradient-primary hover:opacity-90" 
                 onClick={handleSaveProfile}
-                disabled={isSaving}
+                disabled={isSaving || !editData.company_name.trim() || !editData.industry.trim()}
               >
                 {isSaving ? (
                   <>
@@ -943,6 +1142,13 @@ const EmployerProfile = () => {
               {editingJob ? 'Edit Job' : 'Post New Job'}
             </DialogTitle>
           </DialogHeader>
+          
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1104,10 +1310,17 @@ const EmployerProfile = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowJobDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowJobDialog(false)
+              setError(null)
+            }}>
               Cancel
             </Button>
-            <Button className="bg-gradient-primary hover:opacity-90" onClick={handleSaveJob}>
+            <Button 
+              className="bg-gradient-primary hover:opacity-90" 
+              onClick={handleSaveJob}
+              disabled={!jobData.title.trim() || !jobData.description.trim()}
+            >
               {editingJob ? 'Update Job' : 'Post Job'}
             </Button>
           </DialogFooter>

@@ -39,7 +39,6 @@ const refreshToken = async () => {
   return data.access;
 };
 
-// Main API wrapper
 const fetchAPI = async (
   endpoint: string,
   method: string = "GET",
@@ -56,17 +55,24 @@ const fetchAPI = async (
     : getDefaultHeaders();
 
   try {
+    console.log(`🚀 API Request: ${method} ${API_URL}${endpoint}`);
+    if (body && !isFormData) {
+      console.log("📤 Request Body:", JSON.stringify(body, null, 2));
+    }
+
     const res = await fetch(`${API_URL}${endpoint}`, {
       method,
       headers,
       ...(body && (isFormData ? { body } : { body: JSON.stringify(body) })),
     });
 
-    // Handle 401 Unauthorized (token expired)
+    console.log(` API Response: ${res.status} ${res.statusText}`);
+
     if (res.status === 401 && retry) {
       try {
+        console.log(" Token expired, attempting refresh...");
         await refreshToken();
-        return fetchAPI(endpoint, method, body, isFormData, false); // retry once
+        return fetchAPI(endpoint, method, body, isFormData, false);
       } catch (refreshErr) {
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
@@ -78,23 +84,72 @@ const fetchAPI = async (
     }
 
     if (!res.ok) {
+      let errorData;
+      try {
+        errorData = await res.json();
+        console.error(" API Error Details:", errorData);
+      } catch {
+        errorData = { detail: 'Unknown error' };
+      }
+      
+      if (res.status === 400) {
+        let errorMessage = 'Bad Request - Please check your input';
+        
+        if (typeof errorData === 'object') {
+          const errorMessages = [];
+          
+          if (errorData.detail) {
+            errorMessages.push(errorData.detail);
+          }
+          
+          for (const [field, errors] of Object.entries(errorData)) {
+            if (Array.isArray(errors)) {
+              errorMessages.push(`${field}: ${errors.join(', ')}`);
+            } else if (typeof errors === 'string') {
+              errorMessages.push(`${field}: ${errors}`);
+            } else if (typeof errors === 'object') {
+              for (const [nestedField, nestedErrors] of Object.entries(errors)) {
+                if (Array.isArray(nestedErrors)) {
+                  errorMessages.push(`${field}.${nestedField}: ${nestedErrors.join(', ')}`);
+                }
+              }
+            }
+          }
+          
+          if (errorMessages.length > 0) {
+            errorMessage = errorMessages.join('; ');
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
       if (res.status === 403) {
         throw new Error("You don't have permission to access this resource.");
       }
-      const error = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(error.detail || `Error ${res.status}`);
+      
+      if (res.status === 404) {
+        throw new Error("Resource not found.");
+      }
+      
+      throw new Error(errorData.detail || errorData.message || `Error ${res.status}: ${res.statusText}`);
     }
 
-    return res.status !== 204 ? await res.json() : null;
+    const responseData = res.status !== 204 ? await res.json() : null;
+    console.log(' API Response Data:', responseData);
+    return responseData;
   } catch (err: any) {
-    console.error('API Error:', err);
+    console.error(' API Error:', err);
     throw err;
   }
 };
 
 // ========== AUTHENTICATION ==========
 
-// REGISTER - Updated for Django
 export const register = async (data: {
   username: string;
   email: string;
@@ -106,9 +161,7 @@ export const register = async (data: {
   try {
     const response = await fetchAPI("accounts/register/", "POST", data);
     
-    // Django returns user data directly, not in a 'data' field
     if (response.user) {
-      // Store tokens if they're returned
       if (response.access) {
         localStorage.setItem("access", response.access);
       }
@@ -124,12 +177,10 @@ export const register = async (data: {
   }
 };
 
-// LOGIN - Updated for Django
 export const login = async (data: { email: string; password: string }) => {
   try {
     const response = await fetchAPI("accounts/login/", "POST", data);
     
-    // Store tokens
     if (response.access) {
       localStorage.setItem("access", response.access);
       localStorage.setItem("refresh", response.refresh);
@@ -146,7 +197,6 @@ export const login = async (data: { email: string; password: string }) => {
 export const logout = () => {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
-  // Optional: Call backend logout endpoint if you have one
   // fetchAPI("accounts/logout/", "POST");
 };
 
@@ -343,9 +393,12 @@ export const getJobSeekerFilters = () =>
 export const getJobSeekerDetail = (username: string) => 
   fetchAPI(`job-seeker/listings/${username}/`, 'GET');
 
-// Employer Profile
+// Employer Profile - ADD CREATE FUNCTION
 export const getEmployerProfile = () => 
   fetchAPI('employer/profile/', 'GET');
+
+export const createEmployerProfile = (data: any) =>
+  fetchAPI('employer/profile/', 'POST', data);
 
 export const updateEmployerProfile = (data: any) =>
   fetchAPI('employer/profile/', 'PATCH', data);
@@ -353,12 +406,26 @@ export const updateEmployerProfile = (data: any) =>
 export const uploadCompanyLogo = (file: File) => {
   const formData = new FormData();
   formData.append('logo', file);
-  return fetchAPI('employer/profile/', 'PATCH', formData, true);
+  return fetchAPI('employer/profile/upload-logo/', 'POST', formData, true);
 };
 
 // Employer Job Management
-export const getEmployerJobs = (params?: any) => 
-  fetchAPI('employer/jobs/', 'GET', null, false, true, params);
+export const getEmployerJobs = (params?: any) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+  }
+  
+  const queryString = queryParams.toString();
+  const endpoint = `employer/jobs/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
 
 export const getEmployerJob = (id: number) => 
   fetchAPI(`employer/jobs/${id}/`, 'GET');
@@ -414,4 +481,3 @@ export const unsaveJob = (jobId: number) =>
 
 export const getSavedJobs = () =>
   fetchAPI('employer/saved-jobs/', 'GET');
-
