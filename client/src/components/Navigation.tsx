@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Menu, X, User, LogOut } from "lucide-react"
+import { Menu, X, User, LogOut, Briefcase, Users, Palette, TrendingUp } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
@@ -51,81 +51,75 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {isAuthenticated ? (
-              <>
-                {/* Role-specific navigation for authenticated users */}
-                {user?.role === 'job_seeker' && (
-                  <>
-                    <Link to="/listings/jobs" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Find Jobs
-                    </Link>
-                    <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Hire Artists
-                    </Link>
-                    <Link to="/listings/investors" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Find Investors
-                    </Link>
-                  </>
-                )}
-                
-                {user?.role === 'artist' && (
-                  <>
-                    <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Artists Gallery
-                    </Link>
-                    <Link to="/listings/jobs" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Creative Jobs
-                    </Link>
-                  </>
-                )}
-                
-                {user?.role === 'investor' && (
-                  <>
-                    <Link to="/listings/investors" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Investors Network
-                    </Link>
-                    <Link to="/listings/job-seekers" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Find Talent
-                    </Link>
-                  </>
-                )}
-                
-                {user?.role === 'employer' && (
-                  <>
-                    <Link to="/listings/job-seekers" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Find Talent
-                    </Link>
-                    <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                      Hire Artists
-                    </Link>
-                  </>
-                )}
+            {/* Main navigation - available to everyone */}
+            <Link 
+              to="/listings/jobs" 
+              className="flex items-center text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              <Briefcase className="h-4 w-4 mr-2" />
+              Jobs
+            </Link>
+            
+            <Link 
+              to="/listings/job-seekers" 
+              className="flex items-center text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Talent
+            </Link>
+            
+            <Link 
+              to="/listings/artists" 
+              className="flex items-center text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              <Palette className="h-4 w-4 mr-2" />
+              Artists
+            </Link>
+            
+            <Link 
+              to="/listings/investors" 
+              className="flex items-center text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Investors
+            </Link>
 
-                {/* Common navigation for all authenticated users */}
-                <Link to="/upgrade" className="text-muted-foreground hover:text-foreground transition-smooth">
-                  Upgrade
+            {/* Role-specific quick actions for authenticated users 
+            {isAuthenticated && user?.role === 'employer' && (
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-gradient-primary hover:opacity-90"
+                asChild
+              >
+                <Link to="/listings/job-seekers">
+                  <Users className="h-4 w-4 mr-2" />
+                  Hire Talent
                 </Link>
-              </>
-            ) : (
-              <>
-                {/* Public navigation for non-authenticated users */}
-                <Link to="/listings/jobs" className="text-muted-foreground hover:text-foreground transition-smooth">
-                  Jobs
-                </Link>
-                <Link to="/listings/job-seekers" className="text-muted-foreground hover:text-foreground transition-smooth">
-                  Talent
-                </Link>
-                <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                  Artists
-                </Link>
-                <Link to="/listings/investors" className="text-muted-foreground hover:text-foreground transition-smooth">
-                  Investors
-                </Link>
-                <Link to="/upgrade" className="text-muted-foreground hover:text-foreground transition-smooth">
-                  Upgrade
-                </Link>
-              </>
+              </Button>
             )}
+
+            {isAuthenticated && user?.role === 'job_seeker' && (
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-gradient-primary hover:opacity-90"
+                asChild
+              >
+                <Link to="/profile/job-seeker">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  My Profile
+                </Link>
+              </Button>
+            )} */}
+
+            {/* Upgrade link - Available to everyone */}
+            <Link 
+              to="/upgrade" 
+              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-primary hover:from-purple-500/20 hover:to-pink-500/20 transition-smooth"
+            >
+              Upgrade
+            </Link>
           </div>
 
           {/* Desktop Buttons */}
@@ -181,106 +175,122 @@ const Navigation = () => {
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4 border-t border-border pt-4">
             <div className="flex flex-col space-y-4">
-              {isAuthenticated ? (
-                <>
-                  {/* Mobile role-specific navigation for authenticated users */}
-                  {user?.role === 'job_seeker' && (
-                    <>
-                      <Link to="/listings/jobs" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Find Jobs
-                      </Link>
-                      <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Hire Artists
-                      </Link>
-                      <Link to="/listings/investors" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Find Investors
-                      </Link>
-                    </>
-                  )}
-                  
-                  {user?.role === 'artist' && (
-                    <>
-                      <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Artists Gallery
-                      </Link>
-                      <Link to="/listings/jobs" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Creative Jobs
-                      </Link>
-                    </>
-                  )}
-                  
-                  {user?.role === 'investor' && (
-                    <>
-                      <Link to="/listings/investors" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Investors Network
-                      </Link>
-                      <Link to="/listings/job-seekers" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Find Talent
-                      </Link>
-                    </>
-                  )}
-                  
-                  {user?.role === 'employer' && (
-                    <>
-                      <Link to="/listings/job-seekers" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Find Talent
-                      </Link>
-                      <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                        Hire Artists
-                      </Link>
-                    </>
-                  )}
+              {/* Main mobile navigation */}
+              <Link 
+                to="/listings/jobs" 
+                className="flex items-center text-muted-foreground hover:text-foreground transition-smooth py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Briefcase className="h-4 w-4 mr-3" />
+                Jobs
+              </Link>
+              
+              <Link 
+                to="/listings/job-seekers" 
+                className="flex items-center text-muted-foreground hover:text-foreground transition-smooth py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Users className="h-4 w-4 mr-3" />
+                Talent
+              </Link>
+              
+              <Link 
+                to="/listings/artists" 
+                className="flex items-center text-muted-foreground hover:text-foreground transition-smooth py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Palette className="h-4 w-4 mr-3" />
+                Artists
+              </Link>
+              
+              <Link 
+                to="/listings/investors" 
+                className="flex items-center text-muted-foreground hover:text-foreground transition-smooth py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <TrendingUp className="h-4 w-4 mr-3" />
+                Investors
+              </Link>
 
-                  {/* Common mobile navigation for all authenticated users */}
-                  <Link to="/upgrade" className="text-muted-foreground hover:text-foreground transition-smooth">
-                    Upgrade
+              {/* Role-specific quick actions for mobile */}
+              {isAuthenticated && user?.role === 'employer' && (
+                <Button
+                  variant="default"
+                  className="bg-gradient-primary hover:opacity-90"
+                  asChild
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/listings/job-seekers">
+                    <Users className="h-4 w-4 mr-2" />
+                    Hire Talent
                   </Link>
-                  <Link to={getProfileLink()} className="text-muted-foreground hover:text-foreground transition-smooth">
+                </Button>
+              )}
+
+              {isAuthenticated && user?.role === 'job_seeker' && (
+                <Button
+                  variant="default"
+                  className="bg-gradient-primary hover:opacity-90"
+                  asChild
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/profile/job-seeker">
+                    <Briefcase className="h-4 w-4 mr-2" />
                     My Profile
                   </Link>
-                  
-                  <div className="flex flex-col space-y-2 pt-4">
-                    <div className="text-sm px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium inline-block w-fit">
-                      {getRoleLabel(user?.role || '')}
+                </Button>
+              )}
+
+              {/* Upgrade link */}
+              <Link 
+                to="/upgrade" 
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-primary hover:from-purple-500/20 hover:to-pink-500/20 transition-smooth"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Upgrade
+              </Link>
+
+              {/* User section */}
+              {isAuthenticated ? (
+                <>
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="text-sm px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">
+                        {getRoleLabel(user?.role || '')}
+                      </div>
                     </div>
+                    
+                    <Link 
+                      to={getProfileLink()} 
+                      className="flex items-center text-muted-foreground hover:text-foreground transition-smooth py-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <User className="h-4 w-4 mr-3" />
+                      My Profile
+                    </Link>
+                    
                     <Button 
                       variant="ghost" 
-                      className="justify-start text-destructive hover:text-destructive"
-                      onClick={handleLogout}
+                      className="justify-start text-destructive hover:text-destructive w-full"
+                      onClick={() => {
+                        handleLogout()
+                        setIsMenuOpen(false)
+                      }}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
+                      <LogOut className="h-4 w-4 mr-3" />
                       Logout
                     </Button>
                   </div>
                 </>
               ) : (
-                <>
-                  {/* Mobile public navigation */}
-                  <Link to="/listings/jobs" className="text-muted-foreground hover:text-foreground transition-smooth">
-                    Jobs
-                  </Link>
-                  <Link to="/listings/job-seekers" className="text-muted-foreground hover:text-foreground transition-smooth">
-                    Talent
-                  </Link>
-                  <Link to="/listings/artists" className="text-muted-foreground hover:text-foreground transition-smooth">
-                    Artists
-                  </Link>
-                  <Link to="/listings/investors" className="text-muted-foreground hover:text-foreground transition-smooth">
-                    Investors
-                  </Link>
-                  <Link to="/upgrade" className="text-muted-foreground hover:text-foreground transition-smooth">
-                    Upgrade
-                  </Link>
-                  
-                  <div className="flex flex-col space-y-2 pt-4">
-                    <Button variant="ghost" className="justify-start" asChild>
-                      <Link to="/auth">Sign In</Link>
-                    </Button>
-                    <Button className="bg-gradient-primary hover:opacity-90 transition-smooth shadow-card" asChild>
-                      <Link to="/auth">Get Started</Link>
-                    </Button>
-                  </div>
-                </>
+                <div className="flex flex-col space-y-2 pt-4 border-t border-border">
+                  <Button variant="ghost" className="justify-start" asChild onClick={() => setIsMenuOpen(false)}>
+                    <Link to="/auth">Sign In</Link>
+                  </Button>
+                  <Button className="bg-gradient-primary hover:opacity-90 transition-smooth shadow-card" asChild onClick={() => setIsMenuOpen(false)}>
+                    <Link to="/auth">Get Started</Link>
+                  </Button>
+                </div>
               )}
             </div>
           </div>

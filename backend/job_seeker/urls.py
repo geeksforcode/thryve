@@ -1,9 +1,10 @@
-from django.urls import path
-from .views import (
-    JobSeekerProfileView, ExperienceListView, ExperienceDetailView,
-    ProjectListView, ProjectDetailView, AddSkillsView, RemoveSkillView,
-    UploadResumeView, UploadAvatarView
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import *
+
+# Create a router for ViewSets
+router = DefaultRouter()
+router.register(r'listings', JobSeekerListViewSet, basename='job-seeker-listings')
 
 urlpatterns = [
     path('profile/', JobSeekerProfileView.as_view(), name='job-seeker-profile'),
@@ -16,3 +17,6 @@ urlpatterns = [
     path('skills/', AddSkillsView.as_view(), name='add-skills'),
     path('skills/<int:pk>/', RemoveSkillView.as_view(), name='remove-skill'),
 ]
+
+# Include router URLs
+urlpatterns += router.urls

@@ -313,3 +313,105 @@ export const addSkills = (skills: string[]) =>
 export const removeSkill = (id: number) =>
   fetchAPI(`job-seeker/skills/${id}/`, 'DELETE');
 
+export const getJobSeekerListings = (params?: {
+  search?: string;
+  experience_level?: string;
+  skills?: string[];
+  location?: string;
+  ordering?: string;
+}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.experience_level) queryParams.append('experience_level', params.experience_level);
+  if (params?.location) queryParams.append('location', params.location);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  
+  if (params?.skills && params.skills.length > 0) {
+    params.skills.forEach(skill => queryParams.append('skills', skill));
+  }
+  
+  const queryString = queryParams.toString();
+  const endpoint = `job-seeker/listings/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
+
+export const getJobSeekerFilters = () => 
+  fetchAPI('job-seeker/listings/filters/', 'GET');
+
+export const getJobSeekerDetail = (username: string) => 
+  fetchAPI(`job-seeker/listings/${username}/`, 'GET');
+
+// Employer Profile
+export const getEmployerProfile = () => 
+  fetchAPI('employer/profile/', 'GET');
+
+export const updateEmployerProfile = (data: any) =>
+  fetchAPI('employer/profile/', 'PATCH', data);
+
+export const uploadCompanyLogo = (file: File) => {
+  const formData = new FormData();
+  formData.append('logo', file);
+  return fetchAPI('employer/profile/', 'PATCH', formData, true);
+};
+
+// Employer Job Management
+export const getEmployerJobs = (params?: any) => 
+  fetchAPI('employer/jobs/', 'GET', null, false, true, params);
+
+export const getEmployerJob = (id: number) => 
+  fetchAPI(`employer/jobs/${id}/`, 'GET');
+
+export const createJob = (data: any) =>
+  fetchAPI('employer/jobs/', 'POST', data);
+
+export const updateJob = (id: number, data: any) =>
+  fetchAPI(`employer/jobs/${id}/`, 'PUT', data);
+
+export const deleteJob = (id: number) =>
+  fetchAPI(`employer/jobs/${id}/`, 'DELETE');
+
+export const getJobApplications = (jobId: number) =>
+  fetchAPI(`employer/jobs/${jobId}/applications/`, 'GET');
+
+export const updateApplicationStatus = (applicationId: number, status: string) =>
+  fetchAPI(`employer/applications/${applicationId}/update_status/`, 'PATCH', { status });
+
+// Job Listings (Public)
+export const getJobListings = (params?: any) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.job_type) queryParams.append('job_type', params.job_type);
+  if (params?.location) queryParams.append('location', params.location);
+  if (params?.experience_level) queryParams.append('experience_level', params.experience_level);
+  if (params?.remote_option) queryParams.append('remote_option', params.remote_option);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  if (params?.skills && params.skills.length > 0) {
+    params.skills.forEach((skill: string) => queryParams.append('skills', skill));
+  }
+  
+  const queryString = queryParams.toString();
+  const endpoint = `employer/listings/jobs/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
+
+export const getJobListing = (id: number) => 
+  fetchAPI(`employer/listings/jobs/${id}/`, 'GET');
+
+export const applyToJob = (jobId: number, data: any) =>
+  fetchAPI(`employer/listings/jobs/${jobId}/apply/`, 'POST', data);
+
+export const saveJob = (jobId: number) =>
+  fetchAPI(`employer/listings/jobs/${jobId}/save/`, 'POST');
+
+export const unsaveJob = (jobId: number) =>
+  fetchAPI(`employer/saved-jobs/${jobId}/`, 'DELETE');
+
+export const getSavedJobs = () =>
+  fetchAPI('employer/saved-jobs/', 'GET');
+

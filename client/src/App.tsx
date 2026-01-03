@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import JobSeekerListings from "./pages/JobSeekerListings";
+import JobSeekerDetail from "./pages/JobSeekerDetail"; // Add this import
 import ArtistListings from "./pages/ArtistListings";
 import InvestorListings from "./pages/InvestorListings";
 import JobListings from "./pages/JobListings";
@@ -46,6 +47,12 @@ const App = () => (
             <Route path="/auth/facebook/callback" element={<FacebookCallbackPage />} />
             <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
 
+            {/* Public Listings Routes - Anyone can view */}
+            <Route path="/listings/job-seekers" element={<JobSeekerListings />} />
+            <Route path="/job-seekers/:username" element={<JobSeekerDetail />} />
+            <Route path="/listings/artists" element={<ArtistListings />} />
+            <Route path="/listings/investors" element={<InvestorListings />} />
+
             {/* Protected Routes - Role Specific */}
             
             {/* Job Seeker Routes */}
@@ -66,21 +73,11 @@ const App = () => (
                 <ArtistProfile />
               </ProtectedRoute>
             } />
-            <Route path="/listings/artists" element={
-              <ProtectedRoute>
-                <ArtistListings />
-              </ProtectedRoute>
-            } />
 
             {/* Investor Routes */}
             <Route path="/profile/investor" element={
               <ProtectedRoute requiredRole="investor">
                 <InvestorProfile />
-              </ProtectedRoute>
-            } />
-            <Route path="/listings/investors" element={
-              <ProtectedRoute>
-                <InvestorListings />
               </ProtectedRoute>
             } />
 
@@ -90,11 +87,10 @@ const App = () => (
                 <EmployerProfile />
               </ProtectedRoute>
             } />
-            <Route path="/listings/job-seekers" element={
-              <ProtectedRoute requiredRole="employer">
-                <JobSeekerListings />
-              </ProtectedRoute>
-            } />
+            
+            {/* NOTE: Job Seeker Listings moved to public routes above
+                so employers (and everyone) can view job seekers 
+                without requiring authentication */}
 
             {/* Common Protected Routes (all authenticated users) */}
             <Route path="/upgrade" element={

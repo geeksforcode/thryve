@@ -1,14 +1,12 @@
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status, permissions, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, JSONParser
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
 from .models import JobSeekerProfile, Experience, Project, Skill
-from .serializers import (
-    JobSeekerProfileSerializer, JobSeekerProfileUpdateSerializer,
-    CreateExperienceSerializer, ExperienceSerializer,
-    CreateProjectSerializer, AddSkillsSerializer,
-    UploadResumeSerializer, UploadAvatarSerializer
-)
+from .serializers import *
+from django.db.models import Count
+from django.db.models import Q
 
 class IsJobSeeker(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -143,3 +141,63 @@ class UploadAvatarView(generics.GenericAPIView):
             'message': 'Avatar uploaded successfully',
             'avatar_url': profile.avatar.url if profile.avatar else None
         }, status=status.HTTP_200_OK)
+        
+class JobSeekerListViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for listing and viewing job seekers
+    """
+    queryset = JobSeekerProfile.objects.select_related('user').prefetch_related(
+        'skills', 'experiences', 'projects__technologies'
+    )
+    serializer_class = JobSeekerListSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        'user__first_name',
+        'user__last_name',
+        'title',
+        'bio',
+        'location',
+        'skills__name'
+    ]
+    ordering_fields = ['rating', 'completed_projects', 'user__date_joined']
+    ordering = ['-rating']
+    lookup_field = 'user__username'
+    
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return JobSeekerDetailSerializer
+        return JobSeekerListSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by experience level
+        experience_level = self.request.query_params.get('experience_level')
+        if experience_level:
+            queryset = queryset.filter(experience_level=experience_level)
+        
+        # Filter by skills
+        skills = self.request.query_params.getlist('skills')
+        if skills:
+            queryset = queryset.filter(skills__name__in=skills).distinct()
+        
+        # Filter by location
+        location = self.request.query_params.get('location')
+        if location:
+            queryset = queryset.filter(location__icontains=location)
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def filters(self, request):
+        """Get available filters for job seekers"""
+        filters_data = {
+            'experience_levels': dict(JobSeekerProfile.EXPERIENCE_LEVELS),
+            'popular_skills': Skill.objects.values('name').annotate(
+                count=Count('id')
+            ).order_by('-count')[:10],
+            'locations': JobSeekerProfile.objects.exclude(
+                location=''
+            ).values_list('location', flat=True).distinct()[:10],
+        }
+        return Response(filters_data)

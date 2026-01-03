@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import JobSeekerProfile, Experience, Project, ProjectTechnology, Skill
+from .models import *
 from accounts.serializers import UserSerializer
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -74,3 +74,28 @@ class UploadResumeSerializer(serializers.Serializer):
 
 class UploadAvatarSerializer(serializers.Serializer):
     avatar = serializers.ImageField()
+    
+class JobSeekerListSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    skills = SkillSerializer(many=True, read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(source='user.id', read_only=True)
+    
+    class Meta:
+        model = JobSeekerProfile
+        fields = [
+            'id', 'user_id', 'name', 'title', 'bio', 'experience_level',
+            'location', 'avatar', 'rating', 'completed_projects',
+            'review_count', 'skills'
+        ]
+    
+    def get_name(self, obj):
+        return obj.user.get_full_name()
+
+class JobSeekerDetailSerializer(JobSeekerListSerializer):
+    experiences = ExperienceSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True, read_only=True)
+    
+    class Meta(JobSeekerListSerializer.Meta):
+        fields = JobSeekerListSerializer.Meta.fields + [
+            'phone', 'resume', 'experiences', 'projects'
+        ]

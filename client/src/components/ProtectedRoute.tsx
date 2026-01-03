@@ -3,14 +3,16 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string;
+  requiredRole?: string | string[]; // Allow array of roles
   redirectTo?: string;
+  requireAuthentication?: boolean;
 }
 
 export const ProtectedRoute = ({ 
   children, 
   requiredRole, 
-  redirectTo = '/auth' 
+  redirectTo = '/auth',
+  requireAuthentication = true
 }: ProtectedRouteProps) => {
   const { user, loading, isAuthenticated } = useAuth();
 
@@ -22,24 +24,34 @@ export const ProtectedRoute = ({
     );
   }
 
+  // If authentication is not required, just render children
+  if (!requireAuthentication) {
+    return <>{children}</>;
+  }
+
+  // If authentication is required but user is not authenticated
   if (!isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
   }
 
   // Check role if required
-  if (requiredRole && user?.role !== requiredRole) {
-    // Redirect based on user's role
-    switch (user?.role) {
-      case 'job_seeker':
-        return <Navigate to="/profile/job-seeker" replace />;
-      case 'artist':
-        return <Navigate to="/profile/artist" replace />;
-      case 'investor':
-        return <Navigate to="/profile/investor" replace />;
-      case 'employer':
-        return <Navigate to="/profile/employer" replace />;
-      default:
-        return <Navigate to="/" replace />;
+  if (requiredRole) {
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    
+    if (!allowedRoles.includes(user?.role || '')) {
+      // Redirect based on user's role to their appropriate profile
+      switch (user?.role) {
+        case 'job_seeker':
+          return <Navigate to="/profile/job-seeker" replace />;
+        case 'artist':
+          return <Navigate to="/profile/artist" replace />;
+        case 'investor':
+          return <Navigate to="/profile/investor" replace />;
+        case 'employer':
+          return <Navigate to="/profile/employer" replace />;
+        default:
+          return <Navigate to="/" replace />;
+      }
     }
   }
 
