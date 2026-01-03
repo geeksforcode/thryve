@@ -26,10 +26,11 @@ import { loginWithFacebook, loginWithGoogle, register, updateProfile } from "@/s
 
 const Auth = () => {
   const [selectedRole, setSelectedRole] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const roles = [
     {
-      value: "job-seeker",
+      value: "job_seeker",
       label: "Job Seeker",
       icon: Briefcase,
       description: "Find your next career opportunity",
@@ -55,12 +56,18 @@ const Auth = () => {
   ];
 
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: "job-seeker",
+    role: "job_seeker",
     acceptTerms: false,
+    experience: "",
+    specialty: "",
+    investmentRange: "",
+    companySize: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,23 +78,111 @@ const Auth = () => {
     });
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleRoleSelect = (role: string) => {
+    setSelectedRole(role);
+    setFormData({
+      ...formData,
+      role: role,
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    
+    // Validation
     if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match!");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.acceptTerms) {
+      alert("Please accept the Terms of Service");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!selectedRole) {
+      alert("Please select a role");
+      setIsLoading(false);
       return;
     }
 
     try {
-      const updated = await updateProfile(formData);
-      const response = await register(formData);
-      console.log(response);
-      if (response?.status === 200 || response?.status === 201) {
-        window.location.href = "/login";
+      console.log("Registration data:", {
+        username: formData.username || formData.email.split('@')[0],
+        email: formData.email,
+        password: formData.password,
+        role: selectedRole,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+
+      // Register user with Django
+      const response = await register({
+        username: formData.username || formData.email.split('@')[0],
+        email: formData.email,
+        password: formData.password,
+        role: selectedRole,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+      
+      console.log("Registration response:", response);
+
+      // Django returns success directly, no status check needed
+      if (response.user || response.message === 'User created successfully') {
+        // Store tokens if they're in the response
+        if (response.access) {
+          localStorage.setItem("access", response.access);
+        }
+        if (response.refresh) {
+          localStorage.setItem("refresh", response.refresh);
+        }
+        
+        // Update profile with additional role-specific data
+        const profileData: any = {
+          role: selectedRole,
+        };
+        
+        // Add role-specific fields (optional - can be updated later)
+        if (selectedRole === "job_seeker" && formData.experience) {
+          profileData.experience = formData.experience;
+        } else if (selectedRole === "artist" && formData.specialty) {
+          profileData.specialty = formData.specialty;
+        } else if (selectedRole === "investor" && formData.investmentRange) {
+          profileData.investmentRange = formData.investmentRange;
+        } else if (selectedRole === "employer" && formData.companySize) {
+          profileData.companySize = formData.companySize;
+        }
+        
+        // Update profile if we have additional data
+        if (Object.keys(profileData).length > 1) {
+          try {
+            await updateProfile(profileData);
+          } catch (updateError) {
+            console.warn("Profile update failed, but user was created:", updateError);
+          }
+        }
+        
+        window.location.href = "/";
       } else {
-        console.log("something");
+        console.error("Registration failed:", response);
+        alert(response.detail || response.message || "Registration failed. Please try again.");
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.error("Error during registration:", error);
+      alert(error.message || "An error occurred during registration");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -138,7 +233,7 @@ const Auth = () => {
                               ? "border-primary bg-primary/5"
                               : "border-border"
                           }`}
-                          onClick={() => setSelectedRole(role.value)}
+                          onClick={() => handleRoleSelect(role.value)}
                         >
                           <div className="flex flex-col items-center text-center space-y-2">
                             <role.icon
@@ -161,15 +256,31 @@ const Auth = () => {
                   </div>
 
                   {/* Sign Up Form */}
-                  <div className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" placeholder="John" />
+                        <Input 
+                          id="firstName" 
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          placeholder="John" 
+                          required
+                          disabled={isLoading}
+                        />
                       </div>
                       <div>
                         <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" placeholder="Doe" />
+                        <Input 
+                          id="lastName" 
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          placeholder="Doe" 
+                          required
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
 
@@ -177,10 +288,25 @@ const Auth = () => {
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
+                        name="email"
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="john@example.com"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="username">Username (Optional)</Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        placeholder="johndoe"
+                        disabled={isLoading}
                       />
                     </div>
 
@@ -188,8 +314,13 @@ const Auth = () => {
                       <Label htmlFor="password">Password</Label>
                       <Input
                         id="password"
+                        name="password"
                         type="password"
+                        value={formData.password}
+                        onChange={handleChange}
                         placeholder="••••••••"
+                        required
+                        disabled={isLoading}
                       />
                     </div>
 
@@ -197,15 +328,24 @@ const Auth = () => {
                       <Label htmlFor="confirmPassword">Confirm Password</Label>
                       <Input
                         id="confirmPassword"
+                        name="confirmPassword"
                         type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
                         placeholder="••••••••"
+                        required
+                        disabled={isLoading}
                       />
                     </div>
 
-                    {selectedRole === "job-seeker" && (
+                    {selectedRole === "job_seeker" && (
                       <div>
                         <Label htmlFor="experience">Experience Level</Label>
-                        <Select>
+                        <Select 
+                          value={formData.experience}
+                          onValueChange={(value) => handleSelectChange("experience", value)}
+                          disabled={isLoading}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select experience level" />
                           </SelectTrigger>
@@ -230,7 +370,11 @@ const Auth = () => {
                     {selectedRole === "artist" && (
                       <div>
                         <Label htmlFor="specialty">Artistic Specialty</Label>
-                        <Select>
+                        <Select 
+                          value={formData.specialty}
+                          onValueChange={(value) => handleSelectChange("specialty", value)}
+                          disabled={isLoading}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select your specialty" />
                           </SelectTrigger>
@@ -261,7 +405,11 @@ const Auth = () => {
                         <Label htmlFor="investmentRange">
                           Investment Range
                         </Label>
-                        <Select>
+                        <Select 
+                          value={formData.investmentRange}
+                          onValueChange={(value) => handleSelectChange("investmentRange", value)}
+                          disabled={isLoading}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select investment range" />
                           </SelectTrigger>
@@ -283,7 +431,11 @@ const Auth = () => {
                     {selectedRole === "employer" && (
                       <div>
                         <Label htmlFor="companySize">Company Size</Label>
-                        <Select>
+                        <Select 
+                          value={formData.companySize}
+                          onValueChange={(value) => handleSelectChange("companySize", value)}
+                          disabled={isLoading}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select company size" />
                           </SelectTrigger>
@@ -306,7 +458,15 @@ const Auth = () => {
                     )}
 
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="terms" />
+                      <Checkbox 
+                        id="terms" 
+                        name="acceptTerms"
+                        checked={formData.acceptTerms}
+                        onCheckedChange={(checked) => 
+                          setFormData({...formData, acceptTerms: checked as boolean})
+                        }
+                        disabled={isLoading}
+                      />
                       <Label
                         htmlFor="terms"
                         className="text-sm text-muted-foreground"
@@ -316,12 +476,20 @@ const Auth = () => {
                     </div>
 
                     <Button
+                      type="submit"
                       className="w-full bg-gradient-primary hover:opacity-90"
-                      disabled={!selectedRole}
+                      disabled={!selectedRole || !formData.acceptTerms || isLoading}
                     >
-                      Create Account
+                      {isLoading ? (
+                        <>
+                          <span className="mr-2">Creating Account...</span>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                        </>
+                      ) : (
+                        "Create Account"
+                      )}
                     </Button>
-                  </div>
+                  </form>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -335,7 +503,11 @@ const Auth = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" onClick={loginWithGoogle}>
+                    <Button 
+                      variant="outline" 
+                      onClick={loginWithGoogle}
+                      disabled={isLoading}
+                    >
                       <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                         <path
                           fill="currentColor"
@@ -356,7 +528,11 @@ const Auth = () => {
                       </svg>
                       Google
                     </Button>
-                    <Button variant="outline" onClick={loginWithFacebook}>
+                    <Button 
+                      variant="outline" 
+                      onClick={loginWithFacebook}
+                      disabled={isLoading}
+                    >
                       <svg
                         className="h-4 w-4 mr-2"
                         fill="currentColor"
@@ -370,6 +546,7 @@ const Auth = () => {
                 </TabsContent>
 
                 <TabsContent value="signin" className="space-y-6">
+                  {/* TODO: Implement sign in form */}
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="signInEmail">Email</Label>

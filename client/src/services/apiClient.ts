@@ -1,7 +1,6 @@
-// const API_URL = import.meta.env.VITE_BASE_URL;
-//
-const API_URL = "http://localhost:3000/";
+const API_URL = "http://localhost:8000/api/";
 
+// Token management
 const getAccessToken = () => localStorage.getItem("access");
 const getRefreshToken = () => localStorage.getItem("refresh");
 
@@ -18,11 +17,12 @@ const getDefaultHeaders = () => {
   return headers;
 };
 
+// Refresh JWT token
 const refreshToken = async () => {
   const refresh = getRefreshToken();
   if (!refresh) throw new Error("No refresh token found");
 
-  const res = await fetch(`${API_URL}auth/token/refresh/`, {
+  const res = await fetch(`${API_URL}accounts/token/refresh/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -39,7 +39,7 @@ const refreshToken = async () => {
   return data.access;
 };
 
-// MAIN API
+// Main API wrapper
 const fetchAPI = async (
   endpoint: string,
   method: string = "GET",
@@ -59,10 +59,10 @@ const fetchAPI = async (
     const res = await fetch(`${API_URL}${endpoint}`, {
       method,
       headers,
-      credentials: "include",
       ...(body && (isFormData ? { body } : { body: JSON.stringify(body) })),
     });
 
+    // Handle 401 Unauthorized (token expired)
     if (res.status === 401 && retry) {
       try {
         await refreshToken();
@@ -70,121 +70,197 @@ const fetchAPI = async (
       } catch (refreshErr) {
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
         throw new Error("Session expired. Please log in again.");
       }
     }
 
     if (!res.ok) {
-      const error = await res.text();
-      //   toast.error(`Error ${res.status}: ${error}`);
-      throw new Error(`Error ${res.status}: ${error}`);
+      if (res.status === 403) {
+        throw new Error("You don't have permission to access this resource.");
+      }
+      const error = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `Error ${res.status}`);
     }
 
     return res.status !== 204 ? await res.json() : null;
   } catch (err: any) {
-    // toast.error(err.message || "Something went wrong!");
+    console.error('API Error:', err);
     throw err;
   }
 };
 
-// LOGIN
-export const login = async (data: { email: string; password: string }) => {
-  const res = await fetchAPI("auth/login/", "POST", data);
+// ========== AUTHENTICATION ==========
 
-  if (res.data.access && res.data.refresh) {
-    localStorage.setItem("access", res.data.access);
-    localStorage.setItem("refresh", res.data.refresh);
-  } else {
-    throw new Error("Login failed: invalid response");
-  }
-
-  return res;
-};
-
-// REGISTER
-export const register = async ({
-  username,
-  email,
-  password,
-  role,
-}: {
+// REGISTER - Updated for Django
+export const register = async (data: {
   username: string;
   email: string;
   password: string;
   role: string;
+  firstName: string;
+  lastName: string;
 }) => {
-  const res = await fetchAPI("auth/register/", "POST", {
-    username,
-    email,
-    password,
-    role,
-  });
-
-  if (!res.ok) {
-    const errorData = await res.json();
-    return errorData;
+  try {
+    const response = await fetchAPI("accounts/register/", "POST", data);
+    
+    // Django returns user data directly, not in a 'data' field
+    if (response.user) {
+      // Store tokens if they're returned
+      if (response.access) {
+        localStorage.setItem("access", response.access);
+      }
+      if (response.refresh) {
+        localStorage.setItem("refresh", response.refresh);
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
   }
-
-  return res;
 };
 
+// LOGIN - Updated for Django
+export const login = async (data: { email: string; password: string }) => {
+  try {
+    const response = await fetchAPI("accounts/login/", "POST", data);
+    
+    // Store tokens
+    if (response.access) {
+      localStorage.setItem("access", response.access);
+      localStorage.setItem("refresh", response.refresh);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
+
+// LOGOUT
 export const logout = () => {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
+  // Optional: Call backend logout endpoint if you have one
+  // fetchAPI("accounts/logout/", "POST");
 };
 
-export const getCurrentUser = () => fetchAPI("me/");
-// export const getBlogCategory = (slug: string) => fetchAPI(`blog-categories/${slug}/`);
-//
+// GET CURRENT USER
+export const getCurrentUser = () => fetchAPI("accounts/me/");
 
-export const getArtist = (body: any) => 
-  fetchAPI(`/api/artists/`, "POST",body);
-
+// UPDATE PROFILE
 export const updateProfile = (data: any) =>
-  fetchAPI("/api/auth/update/", "PATCH", data);
+  fetchAPI("accounts/me/", "PATCH", data);
 
-// FACEBOOK LOGIN
+// ========== SOCIAL AUTH ==========
+
+// FACEBOOK LOGIN (You'll need to implement this in Django)
 export const loginWithFacebook = async () => {
-  window.location.href = `${API_URL}auth/facebook/`;
+  window.location.href = `${API_URL}accounts/facebook/login/`;
 };
 
 // FACEBOOK CALLBACK HANDLER
 export const handleFacebookCallback = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get("code");
+  const state = urlParams.get("state");
 
   if (!code) throw new Error("No code found in Facebook callback URL");
 
-  const res = await fetchAPI(`auth/facebook/callback/?code=${code}`, "GET");
-
-  if (res.access && res.refresh) {
-    localStorage.setItem("access", res.access);
-    localStorage.setItem("refresh", res.refresh);
-  } else {
-    throw new Error("Facebook login failed");
+  const response = await fetchAPI(`accounts/facebook/callback/?code=${code}&state=${state}`, "GET");
+  
+  if (response.access) {
+    localStorage.setItem("access", response.access);
+    localStorage.setItem("refresh", response.refresh);
   }
-
-  return res;
-}
+  
+  return response;
+};
 
 // GOOGLE LOGIN
-
 export const loginWithGoogle = () => {
-  window.location.href = `${API_URL}auth/google`
-}
+  window.location.href = `${API_URL}accounts/google/login/`;
+};
+
+// GOOGLE CALLBACK HANDLER
 export const handleGoogleCallback = async () => {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
-
+  const state = params.get("state");
 
   if (!code) throw new Error("Google auth code not found");
 
-  const res = await fetchAPI("auth/google/callback", "POST", { code });
+  const response = await fetchAPI("accounts/google/callback/", "POST", { 
+    code, 
+    state 
+  });
 
-  if (res.access && res.refresh) {
-    localStorage.setItem("access", res.access);
-    localStorage.setItem("refresh", res.refresh);
+  if (response.access) {
+    localStorage.setItem("access", response.access);
+    localStorage.setItem("refresh", response.refresh);
   }
 
-  return res;
+  return response;
+};
+
+// ========== PROFILE & DATA ==========
+
+// ARTIST OPERATIONS
+export const getArtist = (body: any) => 
+  fetchAPI("profiles/artists/", "POST", body);
+
+export const getArtists = () => 
+  fetchAPI("profiles/artists/", "GET");
+
+// JOB LISTINGS
+export const getJobs = () => 
+  fetchAPI("jobs/", "GET");
+
+export const getJob = (id: string) => 
+  fetchAPI(`jobs/${id}/`, "GET");
+
+// INVESTOR OPERATIONS
+export const getInvestors = () => 
+  fetchAPI("profiles/investors/", "GET");
+
+// JOB SEEKER OPERATIONS
+export const getJobSeekers = () => 
+  fetchAPI("profiles/job-seekers/", "GET");
+
+// ========== UTILITY FUNCTIONS ==========
+
+// Check if user is authenticated
+export const isAuthenticated = () => {
+  return !!getAccessToken();
+};
+
+// Get auth headers for external API calls
+export const getAuthHeaders = () => {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Clear all auth data
+export const clearAuth = () => {
+  localStorage.removeItem("access");
+  localStorage.removeItem("refresh");
+};
+
+// ========== REACT QUERY CONFIG ==========
+
+// Optional: React Query configuration
+export const queryConfig = {
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
 };

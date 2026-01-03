@@ -93,7 +93,7 @@ const RoleSelection = () => {
                       className="w-full bg-gradient-primary hover:opacity-90 transition-smooth"
                       size="sm"
                     >
-                      Sign Up
+                      <a href="/auth">Sign Up</a>
                     </Button>
                     <Button 
                       variant="ghost" 
