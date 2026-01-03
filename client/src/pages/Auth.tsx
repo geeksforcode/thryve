@@ -22,11 +22,12 @@ import {
   TrendingUp,
   Building,
 } from "lucide-react";
-import { loginWithFacebook, loginWithGoogle, register, updateProfile } from "@/services/apiClient";
+import { loginWithFacebook, loginWithGoogle, register, updateProfile, login } from "@/services/apiClient";
 
 const Auth = () => {
   const [selectedRole, setSelectedRole] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("signup");
 
   const roles = [
     {
@@ -70,10 +71,25 @@ const Auth = () => {
     companySize: "",
   });
 
+  // Login form state
+  const [loginData, setLoginData] = useState({
+    email: "",
+    password: "",
+    rememberMe: false,
+  });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setLoginData({
+      ...loginData,
       [name]: type === "checkbox" ? checked : value,
     });
   };
@@ -186,6 +202,76 @@ const Auth = () => {
     }
   };
 
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Basic validation
+    if (!loginData.email || !loginData.password) {
+      alert("Please enter both email and password");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      console.log("Login attempt with:", { email: loginData.email });
+
+      // Call login API
+      const response = await login({
+        email: loginData.email,
+        password: loginData.password,
+      });
+
+      console.log("Login response:", response);
+
+      if (response.access) {
+        // Store tokens
+        localStorage.setItem("access", response.access);
+        localStorage.setItem("refresh", response.refresh);
+        
+        // Store remember me preference
+        if (loginData.rememberMe) {
+          localStorage.setItem("rememberMe", "true");
+        } else {
+          localStorage.removeItem("rememberMe");
+        }
+
+        // Redirect to home page
+        window.location.href = "/";
+      } else {
+        alert(response.detail || "Login failed. Please check your credentials.");
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      
+      // More user-friendly error messages
+      if (error.message.includes("401") || error.message.includes("Invalid credentials")) {
+        alert("Invalid email or password. Please try again.");
+      } else if (error.message.includes("network")) {
+        alert("Network error. Please check your connection and try again.");
+      } else {
+        alert(error.message || "An error occurred during login. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle social login
+  const handleSocialLogin = (provider: 'google' | 'facebook') => {
+    setIsLoading(true);
+    if (provider === 'google') {
+      loginWithGoogle();
+    } else {
+      loginWithFacebook();
+    }
+  };
+
+  // Forgot password handler (you can implement this later)
+  const handleForgotPassword = () => {
+    alert("Forgot password feature coming soon!");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -206,7 +292,12 @@ const Auth = () => {
               <CardTitle className="text-center">Get Started</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="signup" className="w-full">
+              <Tabs 
+                defaultValue="signup" 
+                className="w-full"
+                value={activeTab}
+                onValueChange={setActiveTab}
+              >
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signup" className="flex items-center">
                     <UserPlus className="h-4 w-4 mr-2" />
@@ -480,7 +571,7 @@ const Auth = () => {
                       className="w-full bg-gradient-primary hover:opacity-90"
                       disabled={!selectedRole || !formData.acceptTerms || isLoading}
                     >
-                      {isLoading ? (
+                      {isLoading && activeTab === "signup" ? (
                         <>
                           <span className="mr-2">Creating Account...</span>
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
@@ -505,7 +596,7 @@ const Auth = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <Button 
                       variant="outline" 
-                      onClick={loginWithGoogle}
+                      onClick={() => handleSocialLogin('google')}
                       disabled={isLoading}
                     >
                       <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
@@ -530,7 +621,7 @@ const Auth = () => {
                     </Button>
                     <Button 
                       variant="outline" 
-                      onClick={loginWithFacebook}
+                      onClick={() => handleSocialLogin('facebook')}
                       disabled={isLoading}
                     >
                       <svg
@@ -546,14 +637,19 @@ const Auth = () => {
                 </TabsContent>
 
                 <TabsContent value="signin" className="space-y-6">
-                  {/* TODO: Implement sign in form */}
-                  <div className="space-y-4">
+                  {/* Sign In Form */}
+                  <form onSubmit={handleLoginSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="signInEmail">Email</Label>
                       <Input
                         id="signInEmail"
+                        name="email"
                         type="email"
+                        value={loginData.email}
+                        onChange={handleLoginChange}
                         placeholder="john@example.com"
+                        required
+                        disabled={isLoading}
                       />
                     </div>
 
@@ -561,27 +657,57 @@ const Auth = () => {
                       <Label htmlFor="signInPassword">Password</Label>
                       <Input
                         id="signInPassword"
+                        name="password"
                         type="password"
+                        value={loginData.password}
+                        onChange={handleLoginChange}
                         placeholder="••••••••"
+                        required
+                        disabled={isLoading}
                       />
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <Checkbox id="remember" />
+                        <Checkbox 
+                          id="remember" 
+                          name="rememberMe"
+                          checked={loginData.rememberMe}
+                          onCheckedChange={(checked) => 
+                            setLoginData({...loginData, rememberMe: checked as boolean})
+                          }
+                          disabled={isLoading}
+                        />
                         <Label htmlFor="remember" className="text-sm">
                           Remember me
                         </Label>
                       </div>
-                      <Button variant="link" className="text-sm p-0">
+                      <Button 
+                        type="button" 
+                        variant="link" 
+                        className="text-sm p-0"
+                        onClick={handleForgotPassword}
+                        disabled={isLoading}
+                      >
                         Forgot password?
                       </Button>
                     </div>
 
-                    <Button className="w-full bg-gradient-primary hover:opacity-90">
-                      Sign In
+                    <Button 
+                      type="submit"
+                      className="w-full bg-gradient-primary hover:opacity-90"
+                      disabled={isLoading}
+                    >
+                      {isLoading && activeTab === "signin" ? (
+                        <>
+                          <span className="mr-2">Signing In...</span>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                        </>
+                      ) : (
+                        "Sign In"
+                      )}
                     </Button>
-                  </div>
+                  </form>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -595,7 +721,11 @@ const Auth = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleSocialLogin('google')}
+                      disabled={isLoading}
+                    >
                       <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                         <path
                           fill="currentColor"
@@ -616,7 +746,11 @@ const Auth = () => {
                       </svg>
                       Google
                     </Button>
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleSocialLogin('facebook')}
+                      disabled={isLoading}
+                    >
                       <svg
                         className="h-4 w-4 mr-2"
                         fill="currentColor"
@@ -625,6 +759,18 @@ const Auth = () => {
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
                       Facebook
+                    </Button>
+                  </div>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      className="text-sm p-0"
+                      onClick={() => setActiveTab("signup")}
+                    >
+                      Sign up
                     </Button>
                   </div>
                 </TabsContent>
