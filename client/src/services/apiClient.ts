@@ -264,3 +264,52 @@ export const queryConfig = {
     },
   },
 };
+
+export const getJobSeekerProfile = () => 
+  fetchAPI('job-seeker/profile/', 'GET');
+
+export const updateJobSeekerProfile = (data: any) =>
+  fetchAPI('job-seeker/profile/', 'PATCH', data);
+
+export const uploadResume = (file: File) => {
+  const formData = new FormData();
+  formData.append('resume', file);
+  return fetchAPI('job-seeker/profile/upload-resume/', 'POST', formData, true);
+};
+
+export const uploadAvatar = (file: File) => {
+  const formData = new FormData();
+  formData.append('avatar', file);
+  return fetchAPI('job-seeker/profile/upload-avatar/', 'POST', formData, true);
+};
+
+export const getExperiences = () => 
+  fetchAPI('job-seeker/experiences/', 'GET');
+
+export const addExperience = (data: any) =>
+  fetchAPI('job-seeker/experiences/', 'POST', data);
+
+export const updateExperience = (id: number, data: any) =>
+  fetchAPI(`job-seeker/experiences/${id}/`, 'PUT', data);
+
+export const deleteExperience = (id: number) =>
+  fetchAPI(`job-seeker/experiences/${id}/`, 'DELETE');
+
+export const getProjects = () => 
+  fetchAPI('job-seeker/projects/', 'GET');
+
+export const addProject = (data: any) =>
+  fetchAPI('job-seeker/projects/', 'POST', data);
+
+export const updateProject = (id: number, data: any) =>
+  fetchAPI(`job-seeker/projects/${id}/`, 'PUT', data);
+
+export const deleteProject = (id: number) =>
+  fetchAPI(`job-seeker/projects/${id}/`, 'DELETE');
+
+export const addSkills = (skills: string[]) =>
+  fetchAPI('job-seeker/skills/', 'POST', { skills });
+
+export const removeSkill = (id: number) =>
+  fetchAPI(`job-seeker/skills/${id}/`, 'DELETE');
+

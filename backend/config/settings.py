@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # Local apps
     'accounts',
     'profiles',
+    'job_seeker',
 ]
 
 MIDDLEWARE = [
@@ -149,6 +150,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # JWT Settings
 SIMPLE_JWT = {

@@ -30,6 +30,7 @@ urlpatterns = [
     
     # API Routes
     path('api/accounts/', include('accounts.urls')),
+    path('api/job-seeker/', include('job_seeker.urls')),
     #path('api/profiles/', include('profiles.urls')),
 ]
 
