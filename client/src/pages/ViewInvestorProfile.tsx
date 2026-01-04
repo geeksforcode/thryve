@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Textarea } from "@/components/ui/textarea"
 import { 
   MapPin, Mail, DollarSign, TrendingUp, 
   Building, Target, Globe, Linkedin, 
@@ -13,7 +12,7 @@ import {
 import Navigation from "@/components/Navigation"
 import ContactModal from "@/components/modals/ContactModal"
 import { useState, useEffect } from "react"
-import { useParams, useNavigate, Link } from "react-router-dom"
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom"
 import { 
   getInvestorDetail, 
   trackInteraction,
@@ -54,37 +53,10 @@ interface InvestorProfileType {
   updated_at: string;
 }
 
-interface Investment {
-  id: number;
-  artist: {
-    user: {
-      first_name: string;
-      last_name: string;
-      username: string;
-    };
-  };
-  project_name: string;
-  project_description: string;
-  amount: string;
-  investment_type: string;
-  investment_date: string;
-  is_active: boolean;
-  is_successful: boolean;
-}
-
-interface InvestorStats {
-  total_investments: number;
-  total_portfolio_value: string;
-  successful_exits: number;
-  avg_ticket_size: string;
-  active_investments: number;
-  artists_following: number;
-  pending_pitches: number;
-}
-
 const ViewInvestorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: authUser, isAuthenticated } = useAuth();
   
   const [loading, setLoading] = useState(true);
@@ -130,7 +102,9 @@ const ViewInvestorProfile = () => {
 
   const handleSaveArtist = async () => {
     if (!profile || !isAuthenticated) {
-      navigate('/auth');
+      // Redirect to auth with role=artist and return URL
+      const returnUrl = location.pathname;
+      navigate(`/auth?role=artist&returnUrl=${encodeURIComponent(returnUrl)}`);
       return;
     }
     
@@ -154,6 +128,15 @@ const ViewInvestorProfile = () => {
       });
     } finally {
       setSavingArtist(false);
+    }
+  };
+
+  const handleSendPitch = () => {
+    if (!isAuthenticated || authUser?.role !== 'artist') {
+      // Redirect to auth with role=artist and return URL
+      const returnUrl = location.pathname;
+      navigate(`/auth?role=artist&returnUrl=${encodeURIComponent(returnUrl)}`);
+      return;
     }
   };
 
@@ -396,7 +379,7 @@ const ViewInvestorProfile = () => {
                   {!isAuthenticated && (
                     <div className="flex flex-col space-y-2">
                       <Button asChild>
-                        <Link to="/auth?role=artist">
+                        <Link to={`/auth?role=artist&returnUrl=${encodeURIComponent(location.pathname)}`}>
                           Sign Up to Connect
                         </Link>
                       </Button>
@@ -643,7 +626,7 @@ const ViewInvestorProfile = () => {
                     ) : (
                       <div className="pt-2">
                         <Button asChild className="w-full">
-                          <Link to="/auth?role=artist">
+                          <Link to={`/auth?role=artist&returnUrl=${encodeURIComponent(location.pathname)}`}>
                             Sign Up to Pitch
                           </Link>
                         </Button>

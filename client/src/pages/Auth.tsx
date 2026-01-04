@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import Navigation from "@/components/Navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   UserPlus,
   LogIn,
@@ -21,13 +22,42 @@ import {
   Palette,
   TrendingUp,
   Building,
+  Sparkles,
+  CheckCircle,
 } from "lucide-react";
 import { loginWithFacebook, loginWithGoogle, register, updateProfile, login } from "@/services/apiClient";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
-  const [selectedRole, setSelectedRole] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
+  const queryParams = new URLSearchParams(location.search);
+  const roleFromUrl = queryParams.get("role") || "";
+  const returnUrl = queryParams.get("returnUrl") || "/";
+  const message = queryParams.get("message");
+  
+  const [selectedRole, setSelectedRole] = useState(roleFromUrl || "");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signup");
+
+  useEffect(() => {
+    // If role is specified in URL, pre-select it
+    if (roleFromUrl) {
+      setSelectedRole(roleFromUrl);
+      setFormData(prev => ({ ...prev, role: roleFromUrl }));
+    }
+
+    // Show message if present in URL
+    if (message) {
+      toast({
+        title: "Action Required",
+        description: decodeURIComponent(message),
+        variant: "default",
+      });
+    }
+  }, [roleFromUrl, message]);
 
   const roles = [
     {
@@ -35,24 +65,28 @@ const Auth = () => {
       label: "Job Seeker",
       icon: Briefcase,
       description: "Find your next career opportunity",
+      color: "blue",
     },
     {
       value: "artist",
       label: "Artist",
       icon: Palette,
       description: "Showcase your creative portfolio",
+      color: "purple",
     },
     {
       value: "investor",
       label: "Investor",
       icon: TrendingUp,
       description: "Discover investment opportunities",
+      color: "green",
     },
     {
       value: "employer",
       label: "Employer",
       icon: Building,
       description: "Find the right talent for your team",
+      color: "orange",
     },
   ];
 
@@ -63,7 +97,7 @@ const Auth = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "job_seeker",
+    role: roleFromUrl || "job_seeker",
     acceptTerms: false,
     experience: "",
     specialty: "",
@@ -109,25 +143,42 @@ const Auth = () => {
     });
   };
 
+  const getRoleColor = (roleValue: string) => {
+    const role = roles.find(r => r.value === roleValue);
+    return role?.color || "blue";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      toast({
+        title: "Error",
+        description: "Passwords do not match!",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
 
     if (!formData.acceptTerms) {
-      alert("Please accept the Terms of Service");
+      toast({
+        title: "Error",
+        description: "Please accept the Terms of Service",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
 
     if (!selectedRole) {
-      alert("Please select a role");
+      toast({
+        title: "Error",
+        description: "Please select a role",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
@@ -164,6 +215,14 @@ const Auth = () => {
           localStorage.setItem("refresh", response.refresh);
         }
         
+        // ✅ CRITICAL: Update AuthContext state for registration
+        if (response.access && response.refresh) {
+          authLogin({ 
+            access: response.access, 
+            refresh: response.refresh 
+          });
+        }
+        
         // Update profile with additional role-specific data
         const profileData: any = {
           role: selectedRole,
@@ -189,14 +248,53 @@ const Auth = () => {
           }
         }
         
-        window.location.href = "/";
+        // Show success toast
+        toast({
+          title: "Welcome to Thryve! 🎉",
+          description: `Your ${selectedRole.replace('_', ' ')} account has been created successfully.`,
+          variant: "default",
+        });
+        
+        // Add delay to ensure AuthContext updates
+        setTimeout(() => {
+          // Redirect based on role and returnUrl
+          if (returnUrl && returnUrl !== "/") {
+            navigate(returnUrl);
+          } else {
+            // Default redirect based on role
+            switch (selectedRole) {
+              case "artist":
+                navigate("/profile/artist");
+                break;
+              case "investor":
+                navigate("/profile/investor");
+                break;
+              case "employer":
+                navigate("/profile/employer");
+                break;
+              case "job_seeker":
+                navigate("/profile/job-seeker");
+                break;
+              default:
+                navigate("/");
+            }
+          }
+        }, 300); // Small delay for state update
       } else {
         console.error("Registration failed:", response);
-        alert(response.detail || response.message || "Registration failed. Please try again.");
+        toast({
+          title: "Registration Failed",
+          description: response.detail || response.message || "Registration failed. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error("Error during registration:", error);
-      alert(error.message || "An error occurred during registration");
+      toast({
+        title: "Registration Error",
+        description: error.message || "An error occurred during registration",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -208,7 +306,11 @@ const Auth = () => {
 
     // Basic validation
     if (!loginData.email || !loginData.password) {
-      alert("Please enter both email and password");
+      toast({
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
@@ -223,11 +325,23 @@ const Auth = () => {
       });
 
       console.log("Login response:", response);
+      console.log("User role from response:", response.user?.role);
 
       if (response.access) {
         // Store tokens
         localStorage.setItem("access", response.access);
         localStorage.setItem("refresh", response.refresh);
+        
+        // ✅ CRITICAL: Update AuthContext state
+        authLogin({ 
+          access: response.access, 
+          refresh: response.refresh 
+        });
+        
+        // Store user data for debugging
+        if (response.user) {
+          localStorage.setItem("user", JSON.stringify(response.user));
+        }
         
         // Store remember me preference
         if (loginData.rememberMe) {
@@ -236,21 +350,75 @@ const Auth = () => {
           localStorage.removeItem("rememberMe");
         }
 
-        // Redirect to home page
-        window.location.href = "/";
+        // Show success toast
+        toast({
+          title: "Welcome Back! 👋",
+          description: "You have been successfully logged in.",
+          variant: "default",
+        });
+
+        // Add delay to ensure AuthContext updates before navigation
+        setTimeout(() => {
+          // Get user role - try different possible locations in the response
+          const userRole = response.user?.role || 
+                          (response.user && response.user.profile?.role) || 
+                          'job_seeker'; // fallback
+          
+          console.log("User role for navigation:", userRole);
+          console.log("Return URL:", returnUrl);
+
+          // Redirect to returnUrl or default based on user role
+          if (returnUrl && returnUrl !== "/") {
+            console.log("Redirecting to returnUrl:", returnUrl);
+            navigate(returnUrl);
+          } else {
+            // Default redirect based on role
+            switch (userRole) {
+              case "artist":
+                navigate("/profile/artist");
+                break;
+              case "investor":
+                navigate("/profile/investor");
+                break;
+              case "employer":
+                navigate("/profile/employer");
+                break;
+              case "job_seeker":
+              default:
+                navigate("/profile/job-seeker");
+                break;
+            }
+          }
+        }, 300); // Increased delay to ensure AuthContext updates
       } else {
-        alert(response.detail || "Login failed. Please check your credentials.");
+        toast({
+          title: "Login Failed",
+          description: response.detail || "Login failed. Please check your credentials.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error("Login error:", error);
       
       // More user-friendly error messages
       if (error.message.includes("401") || error.message.includes("Invalid credentials")) {
-        alert("Invalid email or password. Please try again.");
+        toast({
+          title: "Invalid Credentials",
+          description: "The email or password you entered is incorrect.",
+          variant: "destructive",
+        });
       } else if (error.message.includes("network")) {
-        alert("Network error. Please check your connection and try again.");
+        toast({
+          title: "Network Error",
+          description: "Please check your internet connection and try again.",
+          variant: "destructive",
+        });
       } else {
-        alert(error.message || "An error occurred during login. Please try again.");
+        toast({
+          title: "Login Error",
+          description: error.message || "An error occurred during login. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -260,16 +428,32 @@ const Auth = () => {
   // Handle social login
   const handleSocialLogin = (provider: 'google' | 'facebook') => {
     setIsLoading(true);
-    if (provider === 'google') {
-      loginWithGoogle();
-    } else {
-      loginWithFacebook();
-    }
+    
+    // Add returnUrl to social login if it exists
+    const socialLoginUrl = provider === 'google' 
+      ? loginWithGoogle()
+      : loginWithFacebook();
+    
+    // Note: Social login redirects are handled by the backend
+    // The backend should handle the returnUrl parameter
   };
 
-  // Forgot password handler (you can implement this later)
+  // Forgot password handler
   const handleForgotPassword = () => {
-    alert("Forgot password feature coming soon!");
+    toast({
+      title: "Coming Soon",
+      description: "Password reset feature is coming soon!",
+      variant: "default",
+    });
+  };
+
+  // Get role-specific welcome message
+  const getRoleWelcomeMessage = () => {
+    const role = roles.find(r => r.value === roleFromUrl);
+    if (role) {
+      return `Sign up as an ${role.label.toLowerCase()} to access exclusive features`;
+    }
+    return "";
   };
 
   return (
@@ -287,9 +471,36 @@ const Auth = () => {
             </p>
           </div>
 
+          {/* Role-specific welcome message */}
+          {roleFromUrl && (
+            <div className={`mb-6 p-4 rounded-lg bg-${getRoleColor(roleFromUrl)}/10 border border-${getRoleColor(roleFromUrl)}/20`}>
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-full bg-${getRoleColor(roleFromUrl)}/20`}>
+                  <Sparkles className={`h-5 w-5 text-${getRoleColor(roleFromUrl)}-600`} />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-medium text-foreground">
+                    {getRoleWelcomeMessage()}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {roleFromUrl === 'artist' 
+                      ? "Connect with investors and showcase your creative work"
+                      : roleFromUrl === 'investor'
+                      ? "Discover talented artists and innovative projects"
+                      : roleFromUrl === 'employer'
+                      ? "Find skilled professionals for your team"
+                      : "Find your perfect career opportunity"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle className="text-center">Get Started</CardTitle>
+              <CardTitle className="text-center">
+                {activeTab === "signup" ? "Create Your Account" : "Welcome Back"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs 
@@ -319,20 +530,22 @@ const Auth = () => {
                       {roles.map((role) => (
                         <div
                           key={role.value}
-                          className={`border rounded-lg p-3 cursor-pointer transition-smooth hover:border-primary ${
+                          className={`border rounded-lg p-3 cursor-pointer transition-smooth hover:border-primary hover:shadow-sm ${
                             selectedRole === role.value
-                              ? "border-primary bg-primary/5"
+                              ? `border-${role.color}-500 bg-${role.color}-50/30 shadow-sm`
                               : "border-border"
                           }`}
                           onClick={() => handleRoleSelect(role.value)}
                         >
                           <div className="flex flex-col items-center text-center space-y-2">
-                            <role.icon
-                              className={`h-6 w-6 ${selectedRole === role.value ? "text-primary" : "text-muted-foreground"}`}
-                            />
+                            <div className={`p-2 rounded-full bg-${role.color}-100`}>
+                              <role.icon
+                                className={`h-5 w-5 ${selectedRole === role.value ? `text-${role.color}-600` : "text-muted-foreground"}`}
+                              />
+                            </div>
                             <div>
                               <div
-                                className={`text-sm font-medium ${selectedRole === role.value ? "text-primary" : "text-foreground"}`}
+                                className={`text-sm font-medium ${selectedRole === role.value ? `text-${role.color}-600` : "text-foreground"}`}
                               >
                                 {role.label}
                               </div>
@@ -340,6 +553,11 @@ const Auth = () => {
                                 {role.description}
                               </div>
                             </div>
+                            {selectedRole === role.value && (
+                              <div className="mt-1">
+                                <CheckCircle className={`h-4 w-4 text-${role.color}-600`} />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -350,7 +568,7 @@ const Auth = () => {
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="firstName">First Name</Label>
+                        <Label htmlFor="firstName">First Name *</Label>
                         <Input 
                           id="firstName" 
                           name="firstName"
@@ -362,7 +580,7 @@ const Auth = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="lastName">Last Name</Label>
+                        <Label htmlFor="lastName">Last Name *</Label>
                         <Input 
                           id="lastName" 
                           name="lastName"
@@ -376,7 +594,7 @@ const Auth = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">Email *</Label>
                       <Input
                         id="email"
                         name="email"
@@ -399,10 +617,13 @@ const Auth = () => {
                         placeholder="johndoe"
                         disabled={isLoading}
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        If left blank, we'll create one from your email
+                      </p>
                     </div>
 
                     <div>
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">Password *</Label>
                       <Input
                         id="password"
                         name="password"
@@ -413,10 +634,13 @@ const Auth = () => {
                         required
                         disabled={isLoading}
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Minimum 8 characters with letters and numbers
+                      </p>
                     </div>
 
                     <div>
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Label htmlFor="confirmPassword">Confirm Password *</Label>
                       <Input
                         id="confirmPassword"
                         name="confirmPassword"
@@ -429,9 +653,10 @@ const Auth = () => {
                       />
                     </div>
 
+                    {/* Role-specific fields */}
                     {selectedRole === "job_seeker" && (
                       <div>
-                        <Label htmlFor="experience">Experience Level</Label>
+                        <Label htmlFor="experience">Experience Level (Optional)</Label>
                         <Select 
                           value={formData.experience}
                           onValueChange={(value) => handleSelectChange("experience", value)}
@@ -455,12 +680,15 @@ const Auth = () => {
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          You can update this later in your profile
+                        </p>
                       </div>
                     )}
 
                     {selectedRole === "artist" && (
                       <div>
-                        <Label htmlFor="specialty">Artistic Specialty</Label>
+                        <Label htmlFor="specialty">Artistic Specialty (Optional)</Label>
                         <Select 
                           value={formData.specialty}
                           onValueChange={(value) => handleSelectChange("specialty", value)}
@@ -488,13 +716,16 @@ const Auth = () => {
                             <SelectItem value="animation">Animation</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Helps investors find artists with specific skills
+                        </p>
                       </div>
                     )}
 
                     {selectedRole === "investor" && (
                       <div>
                         <Label htmlFor="investmentRange">
-                          Investment Range
+                          Investment Range (Optional)
                         </Label>
                         <Select 
                           value={formData.investmentRange}
@@ -516,12 +747,15 @@ const Auth = () => {
                             <SelectItem value="500k+">$500K+</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Helps artists understand your investment capacity
+                        </p>
                       </div>
                     )}
 
                     {selectedRole === "employer" && (
                       <div>
-                        <Label htmlFor="companySize">Company Size</Label>
+                        <Label htmlFor="companySize">Company Size (Optional)</Label>
                         <Select 
                           value={formData.companySize}
                           onValueChange={(value) => handleSelectChange("companySize", value)}
@@ -545,10 +779,13 @@ const Auth = () => {
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Helps job seekers understand your organization
+                        </p>
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-start space-x-2 pt-2">
                       <Checkbox 
                         id="terms" 
                         name="acceptTerms"
@@ -557,13 +794,26 @@ const Auth = () => {
                           setFormData({...formData, acceptTerms: checked as boolean})
                         }
                         disabled={isLoading}
+                        className="mt-1"
                       />
-                      <Label
-                        htmlFor="terms"
-                        className="text-sm text-muted-foreground"
-                      >
-                        I agree to the Terms of Service and Privacy Policy
-                      </Label>
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="terms"
+                          className="text-sm text-muted-foreground leading-tight"
+                        >
+                          I agree to the{" "}
+                          <a href="/terms" className="text-primary hover:underline">
+                            Terms of Service
+                          </a>{" "}
+                          and{" "}
+                          <a href="/privacy" className="text-primary hover:underline">
+                            Privacy Policy
+                          </a>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          By creating an account, you acknowledge that you have read and agree to our terms.
+                        </p>
+                      </div>
                     </div>
 
                     <Button
@@ -577,7 +827,7 @@ const Auth = () => {
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                         </>
                       ) : (
-                        "Create Account"
+                        `Create ${selectedRole ? roles.find(r => r.value === selectedRole)?.label : 'Account'}`
                       )}
                     </Button>
                   </form>
@@ -598,6 +848,7 @@ const Auth = () => {
                       variant="outline" 
                       onClick={() => handleSocialLogin('google')}
                       disabled={isLoading}
+                      className="relative"
                     >
                       <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                         <path
@@ -623,6 +874,7 @@ const Auth = () => {
                       variant="outline" 
                       onClick={() => handleSocialLogin('facebook')}
                       disabled={isLoading}
+                      className="relative"
                     >
                       <svg
                         className="h-4 w-4 mr-2"
@@ -632,6 +884,18 @@ const Auth = () => {
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
                       Facebook
+                    </Button>
+                  </div>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      className="text-sm p-0 font-medium"
+                      onClick={() => setActiveTab("signin")}
+                    >
+                      Sign in here
                     </Button>
                   </div>
                 </TabsContent>
@@ -767,16 +1031,35 @@ const Auth = () => {
                     <Button 
                       type="button" 
                       variant="link" 
-                      className="text-sm p-0"
+                      className="text-sm p-0 font-medium"
                       onClick={() => setActiveTab("signup")}
                     >
-                      Sign up
+                      Sign up here
                     </Button>
                   </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
+
+          {/* Footer links */}
+          <div className="mt-6 text-center text-sm text-muted-foreground space-y-2">
+            <p>
+              By continuing, you agree to our{" "}
+              <a href="/terms" className="text-primary hover:underline">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" className="text-primary hover:underline">
+                Privacy Policy
+              </a>
+            </p>
+            {returnUrl && returnUrl !== "/" && (
+              <p className="text-xs">
+                You'll be redirected back to your previous page after signing in
+              </p>
+            )}
+          </div>
         </div>
       </main>
     </div>

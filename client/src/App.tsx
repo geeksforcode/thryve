@@ -25,6 +25,7 @@ import Auth from "./pages/Auth";
 import FacebookCallbackPage from "./pages/FacebookcallbackPage";
 import GoogleCallbackPage from "./pages/GoogleCallbackPage";
 import AuthSuccess from "./pages/AuthSuccess";
+import ViewPortfolio from "./pages/ViewPortfolio";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/job-seekers/:username" element={<JobSeekerDetail />} />
             <Route path="/listings/artists" element={<ArtistListings />} />
             <Route path="/listings/investors" element={<InvestorListings />} />
+            <Route path="/artist/:username" element={<ViewPortfolio />} />
             
             {/* Public Profile View Routes */}
             <Route path="/investor/:id" element={<ViewInvestorProfile />} />
