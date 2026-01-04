@@ -8,7 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import JobSeekerListings from "./pages/JobSeekerListings";
-import JobSeekerDetail from "./pages/JobSeekerDetail"; // Add this import
+import JobSeekerDetail from "./pages/JobSeekerDetail";
 import ArtistListings from "./pages/ArtistListings";
 import InvestorListings from "./pages/InvestorListings";
 import JobListings from "./pages/JobListings";

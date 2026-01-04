@@ -264,9 +264,6 @@ export const handleGoogleCallback = async () => {
 export const getArtist = (body: any) => 
   fetchAPI("profiles/artists/", "POST", body);
 
-export const getArtists = () => 
-  fetchAPI("profiles/artists/", "GET");
-
 // JOB LISTINGS
 export const getJobs = () => 
   fetchAPI("jobs/", "GET");
@@ -481,3 +478,129 @@ export const unsaveJob = (jobId: number) =>
 
 export const getSavedJobs = () =>
   fetchAPI('employer/saved-jobs/', 'GET');
+  
+// ========== ARTIST PROFILE & PORTFOLIO (FIXED ENDPOINTS) ==========
+
+// Artist Profile
+export const getArtistProfile = () => 
+  fetchAPI('artist/profile/', 'GET');
+
+export const updateArtistProfile = (data: any) =>
+  fetchAPI('artist/profile/', 'PATCH', data);
+
+// Artist Public Profiles - FIXED: Using username parameter in URL
+export const getArtistDetail = (username: string) =>
+  fetchAPI(`artist/profiles/${username}/`, 'GET');
+
+export const getArtistById = (id: number) =>
+  fetchAPI(`artist/profiles/${id}/`, 'GET');
+
+// Artist Listings (Public)
+export const getArtists = (params?: {
+  search?: string;
+  category?: string;
+  skills?: string[];
+  location?: string;
+  available?: string;
+  ordering?: string;
+  page?: number;
+}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.category) queryParams.append('category', params.category);
+  if (params?.location) queryParams.append('location', params.location);
+  if (params?.available) queryParams.append('available', params.available);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  if (params?.skills && params.skills.length > 0) {
+    params.skills.forEach(skill => queryParams.append('skills', skill));
+  }
+  
+  const queryString = queryParams.toString();
+  const endpoint = `artist/listings/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
+
+// Artist Interactions - FIXED: Updated endpoint structure
+export const likeArtist = (artistId: number) =>
+  fetchAPI(`artist/listings/${artistId}/like/`, 'POST');
+
+export const followArtist = (artistId: number) =>
+  fetchAPI(`artist/listings/${artistId}/follow/`, 'POST');
+
+export const requestCommission = (artistId: number, data: any) =>
+  fetchAPI(`artist/listings/${artistId}/commission/`, 'POST', data);
+
+// Artist Portfolio Management
+export const getPortfolioItems = () =>
+  fetchAPI('artist/portfolio/', 'GET');
+
+export const createPortfolioItem = (data: any) => {
+  const formData = new FormData();
+  
+  // Add all fields to form data
+  Object.keys(data).forEach(key => {
+    if (data[key] !== undefined && data[key] !== null) {
+      if (key === 'tags' && Array.isArray(data[key])) {
+        data[key].forEach((tag: string) => formData.append('tags', tag));
+      } else if (key === 'image' || key === 'video_file') {
+        formData.append(key, data[key]);
+      } else {
+        formData.append(key, data[key]);
+      }
+    }
+  });
+  
+  return fetchAPI('artist/portfolio/', 'POST', formData, true);
+};
+
+export const updatePortfolioItem = (id: number, data: any) =>
+  fetchAPI(`artist/portfolio/${id}/`, 'PUT', data);
+
+export const deletePortfolioItem = (id: number) =>
+  fetchAPI(`artist/portfolio/${id}/`, 'DELETE');
+
+// FIXED: Portfolio like function with validation
+export const likePortfolioItem = (portfolioId: number) => {
+  if (!portfolioId || isNaN(portfolioId)) {
+    throw new Error("Valid portfolio ID is required");
+  }
+  return fetchAPI(`artist/portfolio/${portfolioId}/like/`, 'POST');
+};
+
+// Artist Skills Management
+export const getArtistSkills = () =>
+  fetchAPI('artist/skills/', 'GET');
+
+export const addArtistSkill = (data: any) =>
+  fetchAPI('artist/skills/', 'POST', data);
+
+export const updateArtistSkill = (id: number, data: any) =>
+  fetchAPI(`artist/skills/${id}/`, 'PUT', data);
+
+export const deleteArtistSkill = (id: number) =>
+  fetchAPI(`artist/skills/${id}/`, 'DELETE');
+
+// Artist Experience Management
+export const getArtistExperiences = () =>
+  fetchAPI('artist/experiences/', 'GET');
+
+export const addArtistExperience = (data: any) =>
+  fetchAPI('artist/experiences/', 'POST', data);
+
+export const updateArtistExperience = (id: number, data: any) =>
+  fetchAPI(`artist/experiences/${id}/`, 'PUT', data);
+
+export const deleteArtistExperience = (id: number) =>
+  fetchAPI(`artist/experiences/${id}/`, 'DELETE');
+
+// Artist Stats
+export const getArtistStats = () =>
+  fetchAPI('artist/stats/', 'GET');
+
+// Artist Filters
+export const getArtistFilters = () =>
+  fetchAPI('artist/listings/filters/', 'GET');

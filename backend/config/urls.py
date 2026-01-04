@@ -34,6 +34,7 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     path('api/job-seeker/', include('job_seeker.urls')),
     path('api/employer/', include('employer.urls')),
+    path('api/artist/', include('artist.urls')),
     # path('api/profiles/', include('profiles.urls')),
 ]
 

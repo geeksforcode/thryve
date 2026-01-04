@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'profiles',
     'job_seeker',
     'employer',
+    'artist',
 ]
 
 MIDDLEWARE = [
