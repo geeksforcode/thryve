@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Third party
     'rest_framework',
+    'django_filters',
     'corsheaders',
     'rest_framework_simplejwt',
     'drf_yasg',
@@ -30,6 +31,7 @@ INSTALLED_APPS = [
     'job_seeker',
     'employer',
     'artist',
+    'investor',
 ]
 
 MIDDLEWARE = [

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import ViewInvestorProfile from "./pages/ViewInvestorProfile";
 import JobSeekerListings from "./pages/JobSeekerListings";
 import JobSeekerDetail from "./pages/JobSeekerDetail";
 import ArtistListings from "./pages/ArtistListings";
@@ -52,6 +53,9 @@ const App = () => (
             <Route path="/job-seekers/:username" element={<JobSeekerDetail />} />
             <Route path="/listings/artists" element={<ArtistListings />} />
             <Route path="/listings/investors" element={<InvestorListings />} />
+            
+            {/* Public Profile View Routes */}
+            <Route path="/investor/:id" element={<ViewInvestorProfile />} />
 
             {/* Protected Routes - Role Specific */}
             

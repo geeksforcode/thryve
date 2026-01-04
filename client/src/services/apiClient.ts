@@ -258,27 +258,6 @@ export const handleGoogleCallback = async () => {
   return response;
 };
 
-// ========== PROFILE & DATA ==========
-
-// ARTIST OPERATIONS
-export const getArtist = (body: any) => 
-  fetchAPI("profiles/artists/", "POST", body);
-
-// JOB LISTINGS
-export const getJobs = () => 
-  fetchAPI("jobs/", "GET");
-
-export const getJob = (id: string) => 
-  fetchAPI(`jobs/${id}/`, "GET");
-
-// INVESTOR OPERATIONS
-export const getInvestors = () => 
-  fetchAPI("profiles/investors/", "GET");
-
-// JOB SEEKER OPERATIONS
-export const getJobSeekers = () => 
-  fetchAPI("profiles/job-seekers/", "GET");
-
 // ========== UTILITY FUNCTIONS ==========
 
 // Check if user is authenticated
@@ -311,6 +290,132 @@ export const queryConfig = {
     },
   },
 };
+
+// ========== ARTIST PROFILE & PORTFOLIO ==========
+
+// Artist Profile
+export const getArtistProfile = () => 
+  fetchAPI('artist/profile/', 'GET');
+
+export const updateArtistProfile = (data: any) =>
+  fetchAPI('artist/profile/', 'PATCH', data);
+
+// Artist Public Profiles
+export const getArtistDetail = (username: string) =>
+  fetchAPI(`artist/profiles/${username}/`, 'GET');
+
+export const getArtistById = (id: number) =>
+  fetchAPI(`artist/profiles/${id}/`, 'GET');
+
+// Artist Listings (Public)
+export const getArtists = (params?: {
+  search?: string;
+  category?: string;
+  skills?: string[];
+  location?: string;
+  available?: string;
+  ordering?: string;
+  page?: number;
+}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.category) queryParams.append('category', params.category);
+  if (params?.location) queryParams.append('location', params.location);
+  if (params?.available) queryParams.append('available', params.available);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  if (params?.skills && params.skills.length > 0) {
+    params.skills.forEach(skill => queryParams.append('skills', skill));
+  }
+  
+  const queryString = queryParams.toString();
+  const endpoint = `artist/listings/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
+
+// Artist Interactions
+export const likeArtist = (artistId: number) =>
+  fetchAPI(`artist/listings/${artistId}/like/`, 'POST');
+
+export const followArtist = (artistId: number) =>
+  fetchAPI(`artist/listings/${artistId}/follow/`, 'POST');
+
+export const requestCommission = (artistId: number, data: any) =>
+  fetchAPI(`artist/listings/${artistId}/commission/`, 'POST', data);
+
+// Artist Portfolio Management
+export const getPortfolioItems = () =>
+  fetchAPI('artist/portfolio/', 'GET');
+
+export const createPortfolioItem = (data: any) => {
+  const formData = new FormData();
+  
+  Object.keys(data).forEach(key => {
+    if (data[key] !== undefined && data[key] !== null) {
+      if (key === 'tags' && Array.isArray(data[key])) {
+        data[key].forEach((tag: string) => formData.append('tags', tag));
+      } else if (key === 'image' || key === 'video_file') {
+        formData.append(key, data[key]);
+      } else {
+        formData.append(key, data[key]);
+      }
+    }
+  });
+  
+  return fetchAPI('artist/portfolio/', 'POST', formData, true);
+};
+
+export const updatePortfolioItem = (id: number, data: any) =>
+  fetchAPI(`artist/portfolio/${id}/`, 'PUT', data);
+
+export const deletePortfolioItem = (id: number) =>
+  fetchAPI(`artist/portfolio/${id}/`, 'DELETE');
+
+export const likePortfolioItem = (portfolioId: number) => {
+  if (!portfolioId || isNaN(portfolioId)) {
+    throw new Error("Valid portfolio ID is required");
+  }
+  return fetchAPI(`artist/portfolio/${portfolioId}/like/`, 'POST');
+};
+
+// Artist Skills Management
+export const getArtistSkills = () =>
+  fetchAPI('artist/skills/', 'GET');
+
+export const addArtistSkill = (data: any) =>
+  fetchAPI('artist/skills/', 'POST', data);
+
+export const updateArtistSkill = (id: number, data: any) =>
+  fetchAPI(`artist/skills/${id}/`, 'PUT', data);
+
+export const deleteArtistSkill = (id: number) =>
+  fetchAPI(`artist/skills/${id}/`, 'DELETE');
+
+// Artist Experience Management
+export const getArtistExperiences = () =>
+  fetchAPI('artist/experiences/', 'GET');
+
+export const addArtistExperience = (data: any) =>
+  fetchAPI('artist/experiences/', 'POST', data);
+
+export const updateArtistExperience = (id: number, data: any) =>
+  fetchAPI(`artist/experiences/${id}/`, 'PUT', data);
+
+export const deleteArtistExperience = (id: number) =>
+  fetchAPI(`artist/experiences/${id}/`, 'DELETE');
+
+// Artist Stats
+export const getArtistStats = () =>
+  fetchAPI('artist/stats/', 'GET');
+
+// Artist Filters
+export const getArtistFilters = () =>
+  fetchAPI('artist/listings/filters/', 'GET');
+
+// ========== JOB SEEKER ==========
 
 export const getJobSeekerProfile = () => 
   fetchAPI('job-seeker/profile/', 'GET');
@@ -390,7 +495,8 @@ export const getJobSeekerFilters = () =>
 export const getJobSeekerDetail = (username: string) => 
   fetchAPI(`job-seeker/listings/${username}/`, 'GET');
 
-// Employer Profile - ADD CREATE FUNCTION
+// ========== EMPLOYER ==========
+
 export const getEmployerProfile = () => 
   fetchAPI('employer/profile/', 'GET');
 
@@ -478,129 +584,224 @@ export const unsaveJob = (jobId: number) =>
 
 export const getSavedJobs = () =>
   fetchAPI('employer/saved-jobs/', 'GET');
-  
-// ========== ARTIST PROFILE & PORTFOLIO (FIXED ENDPOINTS) ==========
 
-// Artist Profile
-export const getArtistProfile = () => 
-  fetchAPI('artist/profile/', 'GET');
+// ========== INVESTOR API ==========
 
-export const updateArtistProfile = (data: any) =>
-  fetchAPI('artist/profile/', 'PATCH', data);
+// Investor Profile
+export const getInvestorProfile = () => 
+  fetchAPI('investor/profiles/me/', 'GET');
 
-// Artist Public Profiles - FIXED: Using username parameter in URL
-export const getArtistDetail = (username: string) =>
-  fetchAPI(`artist/profiles/${username}/`, 'GET');
+export const createInvestorProfile = (data: any) =>
+  fetchAPI('investor/profiles/', 'POST', data);
 
-export const getArtistById = (id: number) =>
-  fetchAPI(`artist/profiles/${id}/`, 'GET');
+export const updateInvestorProfile = (data: any) =>
+  fetchAPI('investor/profiles/me/', 'PATCH', data);
 
-// Artist Listings (Public)
-export const getArtists = (params?: {
+// Investor Listings (Public)
+export const getInvestors = (params?: {
   search?: string;
-  category?: string;
-  skills?: string[];
+  investor_type?: string;
   location?: string;
-  available?: string;
+  is_accepting_pitches?: string;
   ordering?: string;
   page?: number;
 }) => {
   const queryParams = new URLSearchParams();
   
   if (params?.search) queryParams.append('search', params.search);
-  if (params?.category) queryParams.append('category', params.category);
+  if (params?.investor_type) queryParams.append('investor_type', params.investor_type);
   if (params?.location) queryParams.append('location', params.location);
-  if (params?.available) queryParams.append('available', params.available);
+  if (params?.is_accepting_pitches) queryParams.append('is_accepting_pitches', params.is_accepting_pitches);
   if (params?.ordering) queryParams.append('ordering', params.ordering);
   if (params?.page) queryParams.append('page', params.page.toString());
   
-  if (params?.skills && params.skills.length > 0) {
-    params.skills.forEach(skill => queryParams.append('skills', skill));
-  }
-  
   const queryString = queryParams.toString();
-  const endpoint = `artist/listings/${queryString ? `?${queryString}` : ''}`;
+  const endpoint = `investor/profiles/${queryString ? `?${queryString}` : ''}`;
   
   return fetchAPI(endpoint, 'GET');
 };
 
-// Artist Interactions - FIXED: Updated endpoint structure
-export const likeArtist = (artistId: number) =>
-  fetchAPI(`artist/listings/${artistId}/like/`, 'POST');
+export const getInvestorDetail = (id: number) =>
+  fetchAPI(`investor/profiles/${id}/`, 'GET');
 
-export const followArtist = (artistId: number) =>
-  fetchAPI(`artist/listings/${artistId}/follow/`, 'POST');
+// Investor Stats
+export const getInvestorStats = () =>
+  fetchAPI('investor/profiles/stats/', 'GET');
 
-export const requestCommission = (artistId: number, data: any) =>
-  fetchAPI(`artist/listings/${artistId}/commission/`, 'POST', data);
+// Investor Focus Areas
+export const getInvestorFocusAreas = () =>
+  fetchAPI('investor/focus-areas/', 'GET');
 
-// Artist Portfolio Management
-export const getPortfolioItems = () =>
-  fetchAPI('artist/portfolio/', 'GET');
+export const createInvestorFocusArea = (data: any) =>
+  fetchAPI('investor/focus-areas/', 'POST', data);
 
-export const createPortfolioItem = (data: any) => {
-  const formData = new FormData();
+export const updateInvestorFocusArea = (id: number, data: any) =>
+  fetchAPI(`investor/focus-areas/${id}/`, 'PUT', data);
+
+export const deleteInvestorFocusArea = (id: number) =>
+  fetchAPI(`investor/focus-areas/${id}/`, 'DELETE');
+
+// Pitch Requests
+export const createPitchRequest = (data: any) =>
+  fetchAPI('investor/pitch-requests/', 'POST', data);
+
+export const getPitchRequests = (params?: {
+  status?: string;
+  ordering?: string;
+  page?: number;
+}) => {
+  const queryParams = new URLSearchParams();
   
-  // Add all fields to form data
-  Object.keys(data).forEach(key => {
-    if (data[key] !== undefined && data[key] !== null) {
-      if (key === 'tags' && Array.isArray(data[key])) {
-        data[key].forEach((tag: string) => formData.append('tags', tag));
-      } else if (key === 'image' || key === 'video_file') {
-        formData.append(key, data[key]);
-      } else {
-        formData.append(key, data[key]);
-      }
-    }
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  const queryString = queryParams.toString();
+  const endpoint = `investor/pitch-requests/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
+
+export const updatePitchRequestStatus = (pitchId: number, status: string, notes?: string) =>
+  fetchAPI(`investor/pitch-requests/${pitchId}/update_status/`, 'PATCH', {
+    status,
+    investor_notes: notes
   });
+
+// Investments
+export const createInvestment = (data: any) =>
+  fetchAPI('investor/investments/', 'POST', data);
+
+export const getInvestments = (params?: {
+  investment_type?: string;
+  is_active?: string;
+  is_successful?: string;
+  ordering?: string;
+  page?: number;
+}) => {
+  const queryParams = new URLSearchParams();
   
-  return fetchAPI('artist/portfolio/', 'POST', formData, true);
+  if (params?.investment_type) queryParams.append('investment_type', params.investment_type);
+  if (params?.is_active) queryParams.append('is_active', params.is_active);
+  if (params?.is_successful) queryParams.append('is_successful', params.is_successful);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  const queryString = queryParams.toString();
+  const endpoint = `investor/investments/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
 };
 
-export const updatePortfolioItem = (id: number, data: any) =>
-  fetchAPI(`artist/portfolio/${id}/`, 'PUT', data);
+export const updateInvestment = (id: number, data: any) =>
+  fetchAPI(`investor/investments/${id}/`, 'PUT', data);
 
-export const deletePortfolioItem = (id: number) =>
-  fetchAPI(`artist/portfolio/${id}/`, 'DELETE');
+export const deleteInvestment = (id: number) =>
+  fetchAPI(`investor/investments/${id}/`, 'DELETE');
 
-// FIXED: Portfolio like function with validation
-export const likePortfolioItem = (portfolioId: number) => {
-  if (!portfolioId || isNaN(portfolioId)) {
-    throw new Error("Valid portfolio ID is required");
-  }
-  return fetchAPI(`artist/portfolio/${portfolioId}/like/`, 'POST');
+// Artist Interactions & Saved Artists
+export const saveArtist = (artistId: number, data?: { notes?: string; priority?: number }) =>
+  fetchAPI('investor/saved-artists/', 'POST', { artist: artistId, ...data });
+
+export const getSavedArtists = (params?: {
+  ordering?: string;
+  page?: number;
+}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  const queryString = queryParams.toString();
+  const endpoint = `investor/saved-artists/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
 };
 
-// Artist Skills Management
-export const getArtistSkills = () =>
-  fetchAPI('artist/skills/', 'GET');
+export const removeSavedArtist = (id: number) =>
+  fetchAPI(`investor/saved-artists/${id}/`, 'DELETE');
 
-export const addArtistSkill = (data: any) =>
-  fetchAPI('artist/skills/', 'POST', data);
+export const updateSavedArtist = (id: number, data: { notes?: string; priority?: number }) =>
+  fetchAPI(`investor/saved-artists/${id}/`, 'PUT', data);
 
-export const updateArtistSkill = (id: number, data: any) =>
-  fetchAPI(`artist/skills/${id}/`, 'PUT', data);
+// Track Interactions
+export const trackInteraction = (artistId: number, interactionType: string, notes?: string) =>
+  fetchAPI('investor/interactions/', 'POST', {
+    artist: artistId,
+    interaction_type: interactionType,
+    notes
+  });
 
-export const deleteArtistSkill = (id: number) =>
-  fetchAPI(`artist/skills/${id}/`, 'DELETE');
+export const getInteractions = (params?: {
+  interaction_type?: string;
+  ordering?: string;
+  page?: number;
+}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.interaction_type) queryParams.append('interaction_type', params.interaction_type);
+  if (params?.ordering) queryParams.append('ordering', params.ordering);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  
+  const queryString = queryParams.toString();
+  const endpoint = `investor/interactions/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
 
-// Artist Experience Management
-export const getArtistExperiences = () =>
-  fetchAPI('artist/experiences/', 'GET');
+// Discover Artists
+export const discoverArtists = (params?: {
+  page?: number;
+  page_size?: number;
+}) => {
+  const queryParams = new URLSearchParams();
+  
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+  
+  const queryString = queryParams.toString();
+  const endpoint = `investor/discover-artists/${queryString ? `?${queryString}` : ''}`;
+  
+  return fetchAPI(endpoint, 'GET');
+};
 
-export const addArtistExperience = (data: any) =>
-  fetchAPI('artist/experiences/', 'POST', data);
+// Investment Milestones
+export const getInvestmentMilestones = (investmentId: number) =>
+  fetchAPI(`investor/milestones/?investment=${investmentId}`, 'GET');
 
-export const updateArtistExperience = (id: number, data: any) =>
-  fetchAPI(`artist/experiences/${id}/`, 'PUT', data);
+export const createInvestmentMilestone = (data: any) =>
+  fetchAPI('investor/milestones/', 'POST', data);
 
-export const deleteArtistExperience = (id: number) =>
-  fetchAPI(`artist/experiences/${id}/`, 'DELETE');
+export const updateInvestmentMilestone = (id: number, data: any) =>
+  fetchAPI(`investor/milestones/${id}/`, 'PUT', data);
 
-// Artist Stats
-export const getArtistStats = () =>
-  fetchAPI('artist/stats/', 'GET');
+export const deleteInvestmentMilestone = (id: number) =>
+  fetchAPI(`investor/milestones/${id}/`, 'DELETE');
 
-// Artist Filters
-export const getArtistFilters = () =>
-  fetchAPI('artist/listings/filters/', 'GET');
+// Helper function for file uploads
+export const uploadPitchDeck = (file: File) => {
+  const formData = new FormData();
+  formData.append('pitch_deck', file);
+  return fetchAPI('investor/pitch-requests/upload-pitch-deck/', 'POST', formData, true);
+};
+
+export const uploadFinancialProjections = (file: File) => {
+  const formData = new FormData();
+  formData.append('financial_projections', file);
+  return fetchAPI('investor/pitch-requests/upload-financial-projections/', 'POST', formData, true);
+};
+
+// ========== LEGACY FUNCTIONS (Keep for backward compatibility) ==========
+
+// These were in your original file but might not be used anymore
+export const getArtist = (body: any) => 
+  fetchAPI("profiles/artists/", "POST", body);
+
+export const getJobs = () => 
+  fetchAPI("jobs/", "GET");
+
+export const getJob = (id: string) => 
+  fetchAPI(`jobs/${id}/`, "GET");
+
+// This one should now use the new getInvestors function above
+export const getAllInvestors = () => getInvestors();
