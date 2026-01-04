@@ -1,0 +1,11 @@
+# created by virtualenv automatically
+lib
+bin
+pyvenv.cfg
+media
+.env
+.myvenv
+myvenv *
+myvenv
+env *
+

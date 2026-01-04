@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 
 interface AddSkillsModalProps {
   onAdd?: (skills: string[]) => void
+  onRemove?: (skillName: string) => void  // CHANGE: skillName instead of id
   currentSkills?: string[]
   triggerText?: string
   triggerVariant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive"
@@ -16,7 +17,8 @@ interface AddSkillsModalProps {
 }
 
 const AddSkillsModal = ({ 
-  onAdd, 
+  onAdd,
+  onRemove,  // ADD this to destructuring
   currentSkills = [], 
   triggerText = "Edit Skills", 
   triggerVariant = "outline",
@@ -36,6 +38,8 @@ const AddSkillsModal = ({
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter(skill => skill !== skillToRemove))
+    // Call onRemove when a skill is removed
+    onRemove?.(skillToRemove)  // ADD this line
   }
 
   const handleSave = () => {
@@ -54,8 +58,17 @@ const AddSkillsModal = ({
     }
   }
 
+  // Reset skills when modal opens
+  const handleOpenChange = (openState: boolean) => {
+    if (openState) {
+      // Refresh skills from currentSkills when modal opens
+      setSkills(currentSkills)
+    }
+    setOpen(openState)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>  {/* CHANGE: use handleOpenChange */}
       <DialogTrigger asChild>
         <Button variant={triggerVariant} size="sm">
           {triggerIcon}
@@ -93,6 +106,7 @@ const AddSkillsModal = ({
                   <Badge key={skill} variant="secondary" className="group">
                     {skill}
                     <button
+                      type="button"  // ADD type="button"
                       onClick={() => removeSkill(skill)}
                       className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     >

@@ -2,10 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import ViewInvestorProfile from "./pages/ViewInvestorProfile";
 import JobSeekerListings from "./pages/JobSeekerListings";
+import JobSeekerDetail from "./pages/JobSeekerDetail";
 import ArtistListings from "./pages/ArtistListings";
 import InvestorListings from "./pages/InvestorListings";
 import JobListings from "./pages/JobListings";
@@ -21,6 +25,7 @@ import Auth from "./pages/Auth";
 import FacebookCallbackPage from "./pages/FacebookcallbackPage";
 import GoogleCallbackPage from "./pages/GoogleCallbackPage";
 import AuthSuccess from "./pages/AuthSuccess";
+import ViewPortfolio from "./pages/ViewPortfolio";
 
 const queryClient = new QueryClient();
 
@@ -29,30 +34,82 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <HashRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth-success" element={<AuthSuccess />} />
-          <Route path="/listings/job-seekers" element={<JobSeekerListings />} />
-          <Route path="/listings/artists" element={<ArtistListings />} />
-          <Route path="/listings/investors" element={<InvestorListings />} />
-          <Route path="/listings/jobs" element={<JobListings />} />
-          <Route path="/profile/job-seeker" element={<JobSeekerProfile />} />
-          <Route path="/profile/artist" element={<ArtistProfile />} />
-          <Route path="/profile/employer" element={<EmployerProfile />} />
-          <Route path="/profile/investor" element={<InvestorProfile />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/upgrade" element={<PremiumUpgrade />} />
-          <Route path="/auth" element={<Auth />} />
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth-success" element={<AuthSuccess />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            
+            {/* Auth Callbacks */}
+            <Route path="/auth/facebook/callback" element={<FacebookCallbackPage />} />
+            <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
 
-          <Route path="/auth/facebook/callback" element={<FacebookCallbackPage />} />
-          <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
+            {/* Public Listings Routes - Anyone can view */}
+            <Route path="/listings/job-seekers" element={<JobSeekerListings />} />
+            <Route path="/job-seekers/:username" element={<JobSeekerDetail />} />
+            <Route path="/listings/artists" element={<ArtistListings />} />
+            <Route path="/listings/investors" element={<InvestorListings />} />
+            <Route path="/artist/:username" element={<ViewPortfolio />} />
+            
+            {/* Public Profile View Routes */}
+            <Route path="/investor/:id" element={<ViewInvestorProfile />} />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </HashRouter>
+            {/* Protected Routes - Role Specific */}
+            
+            {/* Job Seeker Routes */}
+            <Route path="/profile/job-seeker" element={
+              <ProtectedRoute requiredRole="job_seeker">
+                <JobSeekerProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/listings/jobs" element={
+              <ProtectedRoute requiredRole="job_seeker">
+                <JobListings />
+              </ProtectedRoute>
+            } />
+
+            {/* Artist Routes */}
+            <Route path="/profile/artist" element={
+              <ProtectedRoute requiredRole="artist">
+                <ArtistProfile />
+              </ProtectedRoute>
+            } />
+
+            {/* Investor Routes */}
+            <Route path="/profile/investor" element={
+              <ProtectedRoute requiredRole="investor">
+                <InvestorProfile />
+              </ProtectedRoute>
+            } />
+
+            {/* Employer Routes */}
+            <Route path="/profile/employer" element={
+              <ProtectedRoute requiredRole="employer">
+                <EmployerProfile />
+              </ProtectedRoute>
+            } />
+            
+            {/* NOTE: Job Seeker Listings moved to public routes above
+                so employers (and everyone) can view job seekers 
+                without requiring authentication */}
+
+            {/* Common Protected Routes (all authenticated users) */}
+            <Route path="/upgrade" element={
+              <ProtectedRoute>
+                <PremiumUpgrade />
+              </ProtectedRoute>
+            } />
+
+            {/* Catch-all 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
